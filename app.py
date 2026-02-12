@@ -9,10 +9,12 @@ Responsibilities:
 
 This file is intentionally small and focused on app setup (keeps single responsibility).
 """
+
 import os
+
 from flask import Flask, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
+from flask_sqlalchemy import SQLAlchemy
 
 # Extensions (single instances to be imported elsewhere if needed)
 db = SQLAlchemy()
@@ -41,16 +43,29 @@ def create_app(test_config: dict | None = None) -> Flask:
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
 
-    # Register blueprints (optional imports to avoid circular imports)
+    # Ensure auth user_loader is registered by importing the auth model.
+    # The `Finflow.auth.model` module registers the @login_manager.user_loader
+    # callback when it is imported, so import it here after login_manager.init_app.
     try:
-        from auth.routes import auth_bp  # type: ignore
+        # Importing the model registers the user loader with Flask-Login
+        import Finflow.auth.model  # type: ignore
+    except Exception:
+        # If import fails during early development, continue.
+        # In normal usage the auth.model should be importable so the loader is registered.
+        pass
+
+    # Register blueprints using package-style imports to avoid ambiguity.
+    try:
+        from Finflow.auth.routes import auth_bp  # type: ignore
+
         app.register_blueprint(auth_bp, url_prefix="/auth")
     except Exception:
         # Blueprint may not exist yet during early development; skip if missing.
         pass
 
     try:
-        from finance.routes import finance_bp  # type: ignore
+        from Finflow.finance.routes import finance_bp  # type: ignore
+
         app.register_blueprint(finance_bp, url_prefix="/finance")
     except Exception:
         # Same as above
