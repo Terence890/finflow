@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Register - PinkLedger{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  /* Small component-level tweaks for the register page */
+  .card {
+    max-width: 420px;
+    margin: 48px auto;
+    padding: 22px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(255,95,162,0.08);
+  }
+  .brand {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    justify-content:center;
+    margin-bottom: 8px;
+  }
+  .brand .logo {
+    width:42px;
+    height:42px;
+    border-radius:10px;
+    background: linear-gradient(135deg,#FF5FA2,#FFC1D9);
+  }
+  .muted {
+    color: #8b8b8b;
+    font-size: 0.95rem;
+  }
+  .btn-pink {
+    background: #FF2F7D;
+    color: #fff;
+    border: none;
+  }
+  .btn-pink:hover { opacity: .95; }
+  .form-field { margin-bottom: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="brand">
+    <div class="logo" aria-hidden="true"></div>
+    <div>
+      <h3 style="margin:0;color:#FF5FA2">PinkLedger</h3>
+      <div class="muted">Create your account</div>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div>
+        {% for category, msg in messages %}
+          <div class="flash {{ category }}" role="alert" style="margin-bottom:8px;padding:8px;border-radius:6px;background:#fff0f6;color:#9b1050">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" action="{{ url_for('auth.register') }}">
+    <!-- If you use CSRF (Flask-WTF), place token here -->
+    {% if csrf_token %}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
+
+    <div class="form-field">
+      <label for="name">Full name</label><br>
+      <input id="name" name="name" type="text" required maxlength="100" class="input" placeholder="Your name" value="{{ request.form.name or '' }}">
+    </div>
+
+    <div class="form-field">
+      <label for="email">Email</label><br>
+      <input id="email" name="email" type="email" required maxlength="120" class="input" placeholder="you@example.com" value="{{ request.form.email or '' }}">
+    </div>
+
+    <div class="form-field">
+      <label for="password">Password</label><br>
+      <input id="password" name="password" type="password" required minlength="6" class="input" placeholder="Create a password">
+    </div>
+
+    <div class="form-field">
+      <label for="confirm_password">Confirm password</label><br>
+      <input id="confirm_password" name="confirm_password" type="password" required minlength="6" class="input" placeholder="Repeat your password">
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-top:12px;">
+      <button class="btn btn-pink" type="submit">Create account</button>
+      <a class="muted" href="{{ url_for('auth.login') }}" style="margin-left:auto;text-decoration:none;">Already have an account?</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Small UX: prevent accidental double-submit
+  (function(){
+    const form = document.querySelector('form');
+    if(!form) return;
+    form.addEventListener('submit', function(e){
+      const btn = form.querySelector('button[type="submit"]');
+      if(btn) btn.disabled = true;
+    });
+  }());
+</script>
+{% endblock %}

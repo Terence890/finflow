@@ -1,0 +1,109 @@
+Finflow/templates/login.html#L1-200
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ config.get('APP_NAME', 'PinkLedger') }} — Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <style>
+    /* Minimal safety styles in case the main stylesheet is missing */
+    :root{
+      --primary: #FF5FA2;
+      --secondary: #FFC1D9;
+      --bg: #FFF5F9;
+      --button: #FF2F7D;
+      --card: #ffffff;
+      --text: #333;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--text)}
+    .center-wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      box-shadow:0 6px 18px rgba(255,95,162,0.12);
+      width:100%;
+      max-width:420px;
+      padding:28px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;margin-bottom:18px;
+    }
+    .logo{
+      width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;
+      box-shadow:0 4px 12px rgba(255,47,125,0.12);
+    }
+    h1{font-size:20px;margin:0 0 6px}
+    p.lead{margin:0 0 18px;color:#666;font-size:14px}
+    label{display:block;font-size:13px;margin-bottom:6px}
+    input[type="email"],input[type="password"]{
+      width:100%;padding:10px 12px;border:1px solid #eee;border-radius:8px;margin-bottom:12px;font-size:14px;background:#fff;
+    }
+    .actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
+    .btn-primary{
+      background:var(--button);color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:600;cursor:pointer;
+    }
+    .link-muted{color:#9b6b87;font-size:13px;text-decoration:none}
+    .flash{background: #fff0f6;border:1px solid rgba(255,95,162,0.12);padding:10px;border-radius:8px;margin-bottom:12px;color:#7a233e;font-size:13px}
+    .small{font-size:13px;color:#666;margin-top:12px;text-align:center}
+    .muted{color:#999;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="center-wrap">
+    <main class="card" role="main" aria-labelledby="login-title">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">PL</div>
+        <div>
+          <h1 id="login-title">{{ config.get('APP_NAME','PinkLedger') }}</h1>
+          <p class="lead">Welcome back — sign in to continue</p>
+        </div>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="flash">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" action="{{ url_for('auth.login') }}" autocomplete="off" novalidate>
+        {# CSRF token (if provided by your app/context) #}
+        {% if csrf_token is defined %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% endif %}
+
+        <div>
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="you@example.com" required autofocus />
+        </div>
+
+        <div>
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="••••••••" required />
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+            <input type="checkbox" name="remember" value="1" />
+            Remember me
+          </label>
+          <a class="link-muted" href="{{ url_for('auth.register') }}">Create account</a>
+        </div>
+
+        <div class="actions" style="margin-top:18px;">
+          <button type="submit" class="btn-primary">Sign in</button>
+          <a class="link-muted" href="{{ url_for('auth.register') }}">Sign up</a>
+        </div>
+
+        <div class="small">
+          <p class="muted">By signing in you agree to the terms and privacy policy.</p>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

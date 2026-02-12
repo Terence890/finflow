@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - PinkLedger{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+  <header class="header">
+    <h1 class="logo">PinkLedger</h1>
+    <div class="profile">
+      <span>Hi, {{ current_user.name }}</span>
+      <a href="{{ url_for('auth.logout') }}" class="btn logout">Logout</a>
+    </div>
+  </header>
+
+  <section class="summary-cards">
+    <div class="card balance">
+      <h3>Balance</h3>
+      <p class="large">₹ {{ balance or 0 }}</p>
+    </div>
+    <div class="card income">
+      <h3>Total Income</h3>
+      <p class="large">₹ {{ total_income or 0 }}</p>
+    </div>
+    <div class="card expense">
+      <h3>Total Expense</h3>
+      <p class="large">₹ {{ total_expense or 0 }}</p>
+    </div>
+    <div class="card budget">
+      <h3>Monthly Budget</h3>
+      <p class="small">Set: ₹ {{ budget.amount if budget else '—' }}</p>
+      <div class="progress">
+        <div class="progress-bar" style="width: {{ budget_progress | default(0) }}%"></div>
+      </div>
+      <p class="small muted">{{ budget_progress | default(0) }}% used</p>
+    </div>
+  </section>
+
+  <section class="main-grid">
+    <div class="left-column">
+      <article class="card chart-card">
+        <h4>Expense by Category</h4>
+        <canvas id="expensePie" height="240"></canvas>
+      </article>
+
+      <article class="card chart-card">
+        <h4>Income vs Expense (Last 6 months)</h4>
+        <canvas id="incomeBar" height="240"></canvas>
+      </article>
+    </div>
+
+    <aside class="right-column">
+      <article class="card form-card">
+        <h4>Add Income</h4>
+        <form method="post" action="{{ url_for('finance.add_income') }}">
+          {{ csrf_token() if csrf_token is defined }}
+          <label>Amount</label>
+          <input type="number" name="amount" step="0.01" required>
+          <label>Source</label>
+          <input type="text" name="source" required>
+          <label>Date</label>
+          <input type="date" name="date" value="{{ today }}" required>
+          <button class="btn primary" type="submit">Add Income</button>
+        </form>
+      </article>
+
+      <article class="card form-card">
+        <h4>Add Expense</h4>
+        <form method="post" action="{{ url_for('finance.add_expense') }}">
+          {{ csrf_token() if csrf_token is defined }}
+          <label>Amount</label>
+          <input type="number" name="amount" step="0.01" required>
+          <label>Category</label>
+          <select name="category" required>
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Bills">Bills</option>
+            <option value="Others">Others</option>
+          </select>
+          <label>Date</label>
+          <input type="date" name="date" value="{{ today }}" required>
+          <button class="btn danger" type="submit">Add Expense</button>
+        </form>
+      </article>
+
+      <article class="card list-card">
+        <h4>Recent Transactions</h4>
+        <ul class="transactions">
+          {% for tx in recent_transactions %}
+          <li>
+            <span class="tx-title">{{ tx.description or tx.source or tx.category }}</span>
+            <span class="tx-meta">{{ tx.date }} • ₹ {{ tx.amount }}</span>
+          </li>
+          {% else %}
+          <li class="muted">No recent transactions</li>
+          {% endfor %}
+        </ul>
+        <a href="{{ url_for('finance.transactions') }}" class="small-link">View all</a>
+      </article>
+    </aside>
+  </section>
+
+  <footer class="footer card">
+    <small>PinkLedger — Lightweight financial manager • Designed with love 💗</small>
+  </footer>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Ensure Chart.js is included in base or via static -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Placeholder data; backend should provide `expense_by_category` and `monthly_series`
+  const expenseData = {{ expense_by_category | tojson | safe if expense_by_category is defined else '[]' }};
+  const monthlySeries = {{ monthly_series | tojson | safe if monthly_series is defined else '[]' }};
+
+  // Pie chart
+  if (typeof Chart !== 'undefined' && document.getElementById('expensePie')) {
+    const ctx = document.getElementById('expensePie').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: expenseData.map(e => e.category),
+        datasets: [{ data: expenseData.map(e => e.amount), backgroundColor: ['#FF5FA2','#FFC1D9','#FF2F7D','#FFD6E8','#FFEFF6'] }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  // Bar chart
+  if (typeof Chart !== 'undefined' && document.getElementById('incomeBar')) {
+    const ctx2 = document.getElementById('incomeBar').getContext('2d');
+    new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: monthlySeries.map(m => m.month),
+        datasets: [
+          { label: 'Income', data: monthlySeries.map(m => m.income), backgroundColor: '#FFB3D6' },
+          { label: 'Expense', data: monthlySeries.map(m => m.expense), backgroundColor: '#FF5FA2' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+# PinkLedger (Finflow) - minimal runtime dependencies
+# Recommended for Python 3.10+
+#
+# I use loose, conservative version ranges to keep installs reproducible
+# while avoiding exact pins. For production pin exact versions (e.g. via
+# pip freeze) or use a lock file (pip-tools / poetry).
+
+Flask>=2.2,<3
+Flask-Login>=0.6,<1
+Flask-SQLAlchemy>=3.0,<4
+SQLAlchemy>=1.4,<2
+Werkzeug>=2.2,<3
+Flask-WTF>=1.1,<2           # optional: forms + CSRF protection
+python-dotenv>=0.21,<1      # load .env for config in development
+gunicorn>=20.1,<21          # production WSGI server (optional)
+psycopg2-binary>=2.9,<3     # optional: Postgres driver (keep for portability)
+
+# Dev / testing tools (recommended - install in a dev env)
+# pytest>=7.0,<8
+# black>=23.0,<24
+# flake8>=5.0,<6
+
+# Notes:
+# - Frontend deps like Chart.js are loaded from CDN in templates; not listed here.
+# - If you prefer stricter reproducibility, create a separate requirements-dev.txt
+#   and/or generate a pinned requirements.txt using `pip freeze`.
