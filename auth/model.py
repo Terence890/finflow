@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from Finflow.app import db, login_manager
+from finflow.app import db
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -47,17 +47,3 @@ class User(db.Model, UserMixin):
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email}>"
 
-
-@login_manager.user_loader
-def load_user(user_id: str) -> Optional[User]:
-    """
-    Flask-Login user loader callback.
-    Expects user_id as a string, returns the corresponding User or None.
-    """
-    if not user_id:
-        return None
-    try:
-        uid = int(user_id)
-    except (TypeError, ValueError):
-        return None
-    return User.query.get(uid)

@@ -15,8 +15,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from Finflow.app import db
-from Finflow.auth.model import User
+from finflow.app import db
+from finflow.auth.model import User
 from sqlalchemy import (
     CheckConstraint,
     Column,

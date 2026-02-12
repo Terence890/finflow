@@ -4,6 +4,85 @@ Finflow/static/js/main.js#L1-134
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  const CATEGORY_ICONS = {
+    food:
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M7 3v9M11 3v9M15 4v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '<path d="M6 12h10v5a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M18 9c2 0 2 3 0 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '</svg>',
+    travel:
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '<path d="M5 12l3-6h8l3 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M7 12l2 7M17 12l-2 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '</svg>',
+    shopping:
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M6 8h12l-1.2 10.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M9 8a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '</svg>',
+    bills:
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M6 3h9l3 3v15H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M9 11h6M9 15h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '</svg>',
+    others:
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '<path d="M7 7l10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '</svg>',
+    other:
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '<path d="M7 7l10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+      '</svg>',
+  };
+
+  function normalizeCategory(value) {
+    return String(value || "").toLowerCase();
+  }
+
+  function getCategoryIconSvg(category) {
+    const key = normalizeCategory(category);
+    if (CATEGORY_ICONS[key]) return CATEGORY_ICONS[key];
+    return CATEGORY_ICONS.other;
+  }
+
+  function renderCategoryLegend(container, data, colors) {
+    if (!container) return;
+    const entries = Array.isArray(data) ? data : [];
+    const palette = Array.isArray(colors) && colors.length ? colors : ["#FF5FA2"];
+    container.innerHTML = "";
+    entries.forEach((item, idx) => {
+      const label = item && item.category ? item.category : "Other";
+      const amount = item && typeof item.amount !== "undefined" ? item.amount : 0;
+      const swatch = document.createElement("span");
+      swatch.className = "legend-swatch";
+      swatch.style.background = palette[idx % palette.length];
+
+      const icon = document.createElement("span");
+      icon.className = "legend-icon";
+      icon.innerHTML = getCategoryIconSvg(label);
+
+      const text = document.createElement("span");
+      text.className = "legend-label";
+      text.textContent = label;
+
+      const value = document.createElement("span");
+      value.className = "legend-amount";
+      value.textContent = `PHP ${Number(amount || 0).toFixed(2)}`;
+
+      const row = document.createElement("div");
+      row.className = "legend-item";
+      row.appendChild(swatch);
+      row.appendChild(icon);
+      row.appendChild(text);
+      row.appendChild(value);
+      container.appendChild(row);
+    });
+  }
+
   // Toggle sidebar visibility for responsive layout
   function initSidebarToggle() {
     const toggle = $(".sidebar-toggle");
@@ -21,11 +100,11 @@ Finflow/static/js/main.js#L1-134
     try {
       return new Intl.NumberFormat(navigator.language || "en-US", {
         style: "currency",
-        currency: "USD",
+        currency: "PHP",
         maximumFractionDigits: 2,
       }).format(Number(amount) || 0);
     } catch {
-      return `$${Number(amount || 0).toFixed(2)}`;
+      return `PHP ${Number(amount || 0).toFixed(2)}`;
     }
   }
 
@@ -203,6 +282,8 @@ Finflow/static/js/main.js#L1-134
   window.PinkLedgerUI = {
     showAlert,
     formatCurrency,
+    renderCategoryLegend,
+    getCategoryIconSvg,
     initCharts,
     initBudgetProgress,
   };

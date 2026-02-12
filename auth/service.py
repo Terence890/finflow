@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-from Finflow.app import db
-from Finflow.auth.model import User
+from finflow.app import db
+from finflow.auth.model import User
 
 
 def get_user_by_email(email: str) -> Optional[User]:

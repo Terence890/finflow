@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from Finflow.app import db
+from finflow.app import db
 from flask import (
     Blueprint,
     current_app,
@@ -24,7 +24,7 @@ finance_bp = Blueprint(
 # Try to use a service layer if present to keep routes concise. If the service module
 # is missing (early dev), fall back to small inline implementations that call models.
 try:
-    from Finflow.finance import service as svc  # type: ignore
+    from finflow.finance import service as svc  # type: ignore
 except Exception:
     svc = None  # type: ignore
 
@@ -52,7 +52,7 @@ def dashboard():
         ctx = svc.get_dashboard_context(uid)
     else:
         # Minimal inline fallback implementation using models (keeps routes usable)
-        from Finflow.finance.models import Budget, Expense, Income  # type: ignore
+        from finflow.finance.models import Budget, Expense, Income  # type: ignore
 
         total_income = (
             db.session.query(db.func.coalesce(db.func.sum(Income.amount), 0))
@@ -115,6 +115,7 @@ def dashboard():
         incomes=ctx.get("incomes", []),
         expenses=ctx.get("expenses", []),
         expense_by_category=ctx.get("categories", []),
+        today=datetime.utcnow().date().isoformat(),
     )
 
 
@@ -144,7 +145,7 @@ def add_income():
     if svc and hasattr(svc, "create_income"):
         inc = svc.create_income(uid, amount, source, date_val)
     else:
-        from Finflow.finance.models import Income  # type: ignore
+        from finflow.finance.models import Income  # type: ignore
 
         inc = Income(
             user_id=uid,
@@ -172,7 +173,7 @@ def list_incomes():
     if svc and hasattr(svc, "list_incomes"):
         items = svc.list_incomes(uid)
     else:
-        from Finflow.finance.models import Income  # type: ignore
+        from finflow.finance.models import Income  # type: ignore
 
         items = (
             Income.query.filter_by(user_id=uid)
@@ -186,6 +187,25 @@ def list_incomes():
     )
 
 
+@finance_bp.route("/income/list", methods=["GET"])
+@login_required
+def income_page():
+    uid = current_user.id
+    from finflow.finance.models import Income  # type: ignore
+
+    items = (
+        Income.query.filter_by(user_id=uid)
+        .order_by(Income.date.desc())
+        .limit(current_app.config.get("DEFAULT_PAGE_SIZE", 50))
+        .all()
+    )
+    return render_template(
+        "income.html",
+        incomes=items,
+        today=datetime.utcnow().date().isoformat(),
+    )
+
+
 @finance_bp.route("/income/<int:item_id>", methods=["DELETE"])
 @login_required
 def delete_income(item_id: int):
@@ -195,7 +215,7 @@ def delete_income(item_id: int):
         status = 200 if ok else 403
         return jsonify({"deleted": ok}), status
     else:
-        from Finflow.finance.models import Income  # type: ignore
+        from finflow.finance.models import Income  # type: ignore
 
         inc = Income.query.get_or_404(item_id)
         if inc.user_id != uid:
@@ -227,7 +247,7 @@ def add_expense():
     if svc and hasattr(svc, "create_expense"):
         exp = svc.create_expense(uid, amount, category, date_val)
     else:
-        from Finflow.finance.models import Expense  # type: ignore
+        from finflow.finance.models import Expense  # type: ignore
 
         exp = Expense(
             user_id=uid,
@@ -254,7 +274,7 @@ def list_expenses():
     if svc and hasattr(svc, "list_expenses"):
         items = svc.list_expenses(uid)
     else:
-        from Finflow.finance.models import Expense  # type: ignore
+        from finflow.finance.models import Expense  # type: ignore
 
         items = (
             Expense.query.filter_by(user_id=uid)
@@ -267,6 +287,25 @@ def list_expenses():
     )
 
 
+@finance_bp.route("/expense/list", methods=["GET"])
+@login_required
+def expense_page():
+    uid = current_user.id
+    from finflow.finance.models import Expense  # type: ignore
+
+    items = (
+        Expense.query.filter_by(user_id=uid)
+        .order_by(Expense.date.desc())
+        .limit(current_app.config.get("DEFAULT_PAGE_SIZE", 50))
+        .all()
+    )
+    return render_template(
+        "expense.html",
+        expenses=items,
+        today=datetime.utcnow().date().isoformat(),
+    )
+
+
 @finance_bp.route("/expense/<int:item_id>", methods=["DELETE"])
 @login_required
 def delete_expense(item_id: int):
@@ -276,7 +315,7 @@ def delete_expense(item_id: int):
         status = 200 if ok else 403
         return jsonify({"deleted": ok}), status
     else:
-        from Finflow.finance.models import Expense  # type: ignore
+        from finflow.finance.models import Expense  # type: ignore
 
         exp = Expense.query.get_or_404(item_id)
         if exp.user_id != uid:
@@ -287,6 +326,22 @@ def delete_expense(item_id: int):
 
 
 # ===== Budget =====
+@finance_bp.route("/budget", methods=["GET"])
+@login_required
+def budget_page():
+    uid = current_user.id
+    month = request.args.get("month") or datetime.utcnow().strftime("%Y-%m")
+
+    if svc and hasattr(svc, "get_budget"):
+        b = svc.get_budget(uid, month)
+    else:
+        from finflow.finance.models import Budget  # type: ignore
+
+        b = Budget.query.filter_by(user_id=uid, month=month).first()
+
+    return render_template("budget.html", budget=b, current_month=month)
+
+
 @finance_bp.route("/budget", methods=["POST"])
 @login_required
 def set_budget():
@@ -301,7 +356,7 @@ def set_budget():
     if svc and hasattr(svc, "set_budget"):
         b = svc.set_budget(uid, month, amount)
     else:
-        from Finflow.finance.models import Budget  # type: ignore
+        from finflow.finance.models import Budget  # type: ignore
 
         b = Budget.query.filter_by(user_id=uid, month=month).first()
         if not b:
@@ -328,7 +383,7 @@ def api_summary():
     if svc and hasattr(svc, "get_summary"):
         summary = svc.get_summary(uid)
     else:
-        from Finflow.finance.models import Expense, Income  # type: ignore
+        from finflow.finance.models import Expense, Income  # type: ignore
 
         total_income = (
             db.session.query(db.func.coalesce(db.func.sum(Income.amount), 0))
@@ -344,3 +399,54 @@ def api_summary():
         )
         summary = {"income": float(total_income), "expense": float(total_expense)}
     return jsonify(summary)
+
+
+@finance_bp.route("/reports", methods=["GET"])
+@login_required
+def reports_page():
+    uid = current_user.id
+    if svc and hasattr(svc, "get_totals"):
+        summary = svc.get_totals(uid)
+    else:
+        from finflow.finance.models import Expense, Income  # type: ignore
+
+        total_income = (
+            db.session.query(db.func.coalesce(db.func.sum(Income.amount), 0))
+            .filter(Income.user_id == uid)
+            .scalar()
+            or 0
+        )
+        total_expense = (
+            db.session.query(db.func.coalesce(db.func.sum(Expense.amount), 0))
+            .filter(Expense.user_id == uid)
+            .scalar()
+            or 0
+        )
+        summary = {
+            "income": float(total_income),
+            "expense": float(total_expense),
+            "balance": float(total_income) - float(total_expense),
+        }
+
+    if svc and hasattr(svc, "expense_by_category"):
+        categories = svc.expense_by_category(uid)
+    else:
+        from finflow.finance.models import Expense  # type: ignore
+
+        rows = (
+            db.session.query(
+                Expense.category, db.func.coalesce(db.func.sum(Expense.amount), 0)
+            )
+            .filter(Expense.user_id == uid)
+            .group_by(Expense.category)
+            .all()
+        )
+        categories = [
+            {"category": c or "Other", "amount": float(a)} for c, a in rows
+        ]
+
+    return render_template(
+        "reports.html",
+        summary=summary,
+        categories=categories,
+    )

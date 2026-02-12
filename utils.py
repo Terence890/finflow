@@ -166,7 +166,7 @@ def format_amount(
     """
     Format a Decimal or numeric value into a human-friendly string.
 
-    - By default does not add a currency symbol. Pass e.g. '₹' or '$' for display.
+    - By default does not add a currency symbol. Pass e.g. '₱' or '$' for display.
     - Uses comma as thousands separator and dot as decimal separator.
     - Ensures two decimal places.
 

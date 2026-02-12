@@ -19,6 +19,7 @@ A lightweight, modular financial management mini-project built with Flask, desig
 
 1. Project layout
 2. Setup (local)
+2.5 Screenshots & Features
 3. Development workflow
 4. Key design principles
 5. Files & responsibilities
@@ -101,6 +102,31 @@ Recommended steps:
 Notes:
 - `flask init-db` runs a small CLI helper registered in `app.py` to create tables.
 - The first time you run, the SQLite file `database.db` will be created in the project directory.
+
+---
+
+## 2.5) Screenshots & Features
+
+**Login Page**
+![Login](Screenshot/Login.png)
+
+**Register Page**
+![Register](Screenshot/Register.png)
+
+**Dashboard**
+![Dashboard](Screenshot/Dashboard.png)
+
+**Income Tracking**
+![Income](Screenshot/Income.png)
+
+**Expense Tracking**
+![Expenses](Screenshot/Expenses.png)
+
+**Budget Management**
+![Budget](Screenshot/Budget.png)
+
+**Reports & Analytics**
+![Reports](Screenshot/Report.png)
 
 ---
 

@@ -16,14 +16,13 @@ Finflow/templates/login.html#L1-200
       --card: #ffffff;
       --text: #333;
     }
-    html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--text)}
+    html,body{height:100%;margin:0;background:var(--bg);font-family:var(--font-body, "Manrope", "Segoe UI", Arial, sans-serif);color:var(--text)}
     .center-wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
     .card{
       background:var(--card);
       border-radius:12px;
       box-shadow:0 6px 18px rgba(255,95,162,0.12);
-      width:100%;
-      max-width:420px;
+      width:min(100%, 440px);
       padding:28px;
     }
     .brand{
@@ -47,6 +46,19 @@ Finflow/templates/login.html#L1-200
     .flash{background: #fff0f6;border:1px solid rgba(255,95,162,0.12);padding:10px;border-radius:8px;margin-bottom:12px;color:#7a233e;font-size:13px}
     .small{font-size:13px;color:#666;margin-top:12px;text-align:center}
     .muted{color:#999;font-size:13px}
+    @media (max-width: 720px){
+      .center-wrap{padding:18px}
+      .card{padding:22px}
+      .brand{flex-direction:column;align-items:flex-start}
+      .actions{flex-direction:column;align-items:stretch}
+      .actions .btn-primary{width:100%}
+    }
+    @media (max-width: 420px){
+      .card{padding:18px}
+      .logo{width:42px;height:42px;font-size:18px}
+      h1{font-size:18px}
+      p.lead{font-size:13px}
+    }
   </style>
 </head>
 <body>

@@ -11,6 +11,14 @@ This file is intentionally small and focused on app setup (keeps single responsi
 """
 
 import os
+import sys
+
+# Ensure the parent directory is in PYTHONPATH so finflow package can be imported
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Alias this module to avoid duplicate imports between app and finflow.app
+if "finflow.app" not in sys.modules:
+    sys.modules["finflow.app"] = sys.modules[__name__]
 
 from flask import Flask, redirect, url_for
 from flask_login import LoginManager, current_user
@@ -26,12 +34,18 @@ def create_app(test_config: dict | None = None) -> Flask:
     Application factory - creates and configures the Flask app.
     Accepts optional test_config for easier testing.
     """
-    app = Flask(__name__, instance_relative_config=False)
+    app = Flask(__name__, instance_relative_config=True)
+
+    # Ensure instance folder exists for SQLite DB and instance config
+    os.makedirs(app.instance_path, exist_ok=True)
 
     # Basic configuration - can be overridden by test_config or instance config
+    default_db_path = os.path.join(app.instance_path, "database.db")
     app.config.from_mapping(
         SECRET_KEY=os.environ.get("FLASK_SECRET", "dev-secret-key"),
-        SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", "sqlite:///database.db"),
+        SQLALCHEMY_DATABASE_URI=os.environ.get(
+            "DATABASE_URL", f"sqlite:///{default_db_path}"
+        ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
 
@@ -43,20 +57,24 @@ def create_app(test_config: dict | None = None) -> Flask:
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
 
-    # Ensure auth user_loader is registered by importing the auth model.
-    # The `Finflow.auth.model` module registers the @login_manager.user_loader
-    # callback when it is imported, so import it here after login_manager.init_app.
-    try:
-        # Importing the model registers the user loader with Flask-Login
-        import Finflow.auth.model  # type: ignore
-    except Exception:
-        # If import fails during early development, continue.
-        # In normal usage the auth.model should be importable so the loader is registered.
-        pass
+    # Register user_loader callback for Flask-Login
+    # This must be done before importing modules that use current_user
+    @login_manager.user_loader
+    def load_user(user_id: str):
+        """Load user by ID for Flask-Login."""
+        from finflow.auth.model import User
+
+        if not user_id:
+            return None
+        try:
+            uid = int(user_id)
+        except (TypeError, ValueError):
+            return None
+        return User.query.get(uid)
 
     # Register blueprints using package-style imports to avoid ambiguity.
     try:
-        from Finflow.auth.routes import auth_bp  # type: ignore
+        from finflow.auth.routes import auth_bp  # type: ignore
 
         app.register_blueprint(auth_bp, url_prefix="/auth")
     except Exception:
@@ -64,7 +82,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         pass
 
     try:
-        from Finflow.finance.routes import finance_bp  # type: ignore
+        from finflow.finance.routes import finance_bp  # type: ignore
 
         app.register_blueprint(finance_bp, url_prefix="/finance")
     except Exception:
@@ -83,6 +101,9 @@ def create_app(test_config: dict | None = None) -> Flask:
     def init_db_command():
         """Create database tables."""
         with app.app_context():
+            # Import models so SQLAlchemy registers tables before create_all
+            from finflow.auth import model  # noqa: F401
+            from finflow.finance import models  # noqa: F401
             db.create_all()
             print("Initialized the database.")
 

@@ -17,8 +17,8 @@ from datetime import date, datetime
 from io import StringIO
 from typing import Dict, List, Optional, Tuple
 
-from Finflow.app import db
-from Finflow.finance.models import Budget, Expense, Income
+from finflow.app import db
+from finflow.finance.models import Budget, Expense, Income
 
 
 def add_income(

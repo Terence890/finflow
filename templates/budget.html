@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Budget - PinkLedger{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="section-header">
+    <div>
+      <div class="section-title">
+        <span class="section-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 7h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M16 12h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <h2>Budget</h2>
+      </div>
+      <p class="muted section-subtitle">Set a monthly budget to guide your spending.</p>
+    </div>
+    <span class="card-pill">Planner</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <h3>Set Monthly Budget</h3>
+    </div>
+    <span class="card-pill">Form</span>
+  </div>
+  <form method="post" action="{{ url_for('finance.set_budget') }}">
+    {{ csrf_token() if csrf_token is defined }}
+    <label>Month</label>
+    <input class="input" type="month" name="month" value="{{ current_month }}" required>
+    <label>Amount</label>
+    <input class="input" type="number" name="amount" step="0.01" required>
+    <button class="btn btn-primary" type="submit">Save Budget</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M6 8h12l-1.2 10.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M9 8a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <h3>Current Budget</h3>
+    </div>
+    <span class="card-pill">Status</span>
+  </div>
+  {% if budget %}
+    <p><strong>Month:</strong> {{ budget.month }}</p>
+    <p><strong>Amount:</strong> ₱ {{ budget.amount }}</p>
+  {% else %}
+    <p class="muted">No budget set for this month.</p>
+  {% endif %}
+</div>
+{% endblock %}

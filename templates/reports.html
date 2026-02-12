@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Reports - PinkLedger{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="section-header">
+    <div>
+      <div class="section-title">
+        <span class="section-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 19V5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M4 19h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M8 17V9M12 17V7M16 17v-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <h2>Reports</h2>
+      </div>
+      <p class="muted section-subtitle">Summary view of your income and expenses.</p>
+    </div>
+    <button class="btn btn-secondary report-print" type="button">Export PDF</button>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card stat-card">
+    <div class="stat-row">
+      <div>
+        <div class="title">Total Income</div>
+        <div class="value">₱ {{ summary.income or 0 }}</div>
+      </div>
+      <div class="stat-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 4v12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M7 11l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-row">
+      <div>
+        <div class="title">Total Expense</div>
+        <div class="value">₱ {{ summary.expense or 0 }}</div>
+      </div>
+      <div class="stat-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 20V8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M17 13l-5-5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-row">
+      <div>
+        <div class="title">Balance</div>
+        <div class="value">₱ {{ summary.balance or 0 }}</div>
+      </div>
+      <div class="stat-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 12h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M7 8h10M7 16h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="charts">
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">
+        <span class="chart-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 4v8l6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M12 4a8 8 0 1 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <h3>Expense by Category</h3>
+      </div>
+      <span class="chart-pill">Live</span>
+    </div>
+    <canvas id="reportPie" height="220"></canvas>
+    <div class="chart-legend" data-category-legend></div>
+  </div>
+  <div class="chart-card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M6 3h9l3 3v15H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M9 11h6M9 15h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <h3>Notes</h3>
+      </div>
+      <span class="card-pill">Tips</span>
+    </div>
+    <p class="muted">Use this section to compare spending patterns each month.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script id="report-data" type="application/json">
+  {{ categories | tojson | safe if categories is defined else '[]' }}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const printBtn = document.querySelector('.report-print');
+  if (printBtn) {
+    printBtn.addEventListener('click', function () {
+      window.print();
+    });
+  }
+  const dataEl = document.getElementById('report-data');
+  const parsed = dataEl ? JSON.parse(dataEl.textContent || '[]') : [];
+  const expenseData = Array.isArray(parsed) ? parsed : [];
+  const colors = ['#FF5FA2', '#FFC1D9', '#FF2F7D', '#FFD6E8', '#FFEFF6'];
+  const canvas = document.getElementById('reportPie');
+  const legend = document.querySelector('[data-category-legend]');
+  if (legend && window.PinkLedgerUI && typeof window.PinkLedgerUI.renderCategoryLegend === 'function') {
+    window.PinkLedgerUI.renderCategoryLegend(legend, expenseData, colors);
+  }
+  if (typeof Chart !== 'undefined' && canvas) {
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: expenseData.map(e => e.category),
+        datasets: [{
+          data: expenseData.map(e => e.amount),
+          backgroundColor: colors
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        animation: { duration: 800, easing: 'easeOutQuart' }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
