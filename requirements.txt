@@ -16,9 +16,11 @@ gunicorn>=20.1,<21          # production WSGI server (optional)
 psycopg2-binary>=2.9,<3     # optional: Postgres driver (keep for portability)
 
 # Dev / testing tools (recommended - install in a dev env)
-# pytest>=7.0,<8
-# black>=23.0,<24
-# flake8>=5.0,<6
+pytest>=7.0,<8
+pytest-cov>=4.0,<5
+black>=23.0,<24
+flake8>=5.0,<6
+alembic>=1.10,<2             # database migrations
 
 # Notes:
 # - Frontend deps like Chart.js are loaded from CDN in templates; not listed here.
