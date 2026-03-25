@@ -6,6 +6,7 @@ Forms:
 - ExpenseForm: Amount and category validation
 - BudgetForm: Category and limit validation
 - DateRangeForm: Report date range selection
+- FilterForm: List filtering and pagination
 
 Uses Flask-WTF for CSRF protection and data validation.
 """
@@ -18,8 +19,14 @@ from wtforms import (
     SelectField,
     TextAreaField,
     SubmitField,
+    IntegerField,
 )
-from wtforms.validators import DataRequired, Length, NumberRange
+from wtforms.validators import (
+    DataRequired,
+    Length,
+    NumberRange,
+    Optional as OptionalValidator,
+)
 
 
 class IncomeForm(FlaskForm):
@@ -118,3 +125,67 @@ class DateRangeForm(FlaskForm):
         ],
     )
     submit = SubmitField("Generate Report")
+
+
+class TransactionFilterForm(FlaskForm):
+    """Form to filter and paginate transactions."""
+    
+    page = IntegerField(
+        "Page",
+        validators=[OptionalValidator(), NumberRange(min=1, message="Page must be >= 1")],
+        default=1,
+    )
+    per_page = IntegerField(
+        "Per Page",
+        validators=[OptionalValidator(), NumberRange(min=1, max=100)],
+        default=20,
+    )
+    start_date = DateField("Start Date", validators=[OptionalValidator()])
+    end_date = DateField("End Date", validators=[OptionalValidator()])
+    category = SelectField(
+        "Category",
+        choices=[
+            ("all", "All Categories"),
+            ("Food", "Food"),
+            ("Travel", "Travel"),
+            ("Shopping", "Shopping"),
+            ("Bills", "Bills"),
+            ("Others", "Others"),
+        ],
+        default="all",
+        validators=[OptionalValidator()],
+    )
+    min_amount = DecimalField(
+        "Min Amount",
+        validators=[OptionalValidator(), NumberRange(min=0)],
+        places=2,
+    )
+    max_amount = DecimalField(
+        "Max Amount",
+        validators=[OptionalValidator(), NumberRange(min=0)],
+        places=2,
+    )
+    
+    def get_page(self) -> int:
+        """Get page number with default."""
+        return self.page.data if self.page.data else 1
+    
+    def get_per_page(self) -> int:
+        """Get per_page value with default."""
+        return min(self.per_page.data or 20, 100)
+
+
+class IncomeFilterForm(TransactionFilterForm):
+    """Form to filter incomes with source field."""
+    
+    source = StringField(
+        "Source",
+        validators=[OptionalValidator(), Length(max=120)],
+    )
+
+
+class ExpenseFilterForm(TransactionFilterForm):
+    """Form to filter expenses (inherits from TransactionFilterForm)."""
+    
+    pass
+

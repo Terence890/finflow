@@ -4,6 +4,16 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from finflow.app import db
+from finflow.common.logger import finance_logger, log_transaction
+from finflow.common.pagination import Paginator, get_page_from_request, get_per_page_from_request
+from finflow.common.permissions import ensure_user_owns_data, validate_user_context
+from finflow.finance.forms import (
+    IncomeForm,
+    ExpenseForm,
+    BudgetForm,
+    DateRangeForm,
+)
+from finflow.finance.models import Income, Expense, Budget
 from flask import (
     Blueprint,
     current_app,
@@ -29,15 +39,6 @@ except Exception:
     svc = None  # type: ignore
 
 
-def _parse_amount(value: Optional[str]) -> Tuple[Optional[float], Optional[str]]:
-    if value is None:
-        return None, "Amount is required"
-    try:
-        return float(value), None
-    except (ValueError, TypeError):
-        return None, "Invalid amount"
-
-
 # ===== Dashboard =====
 @finance_bp.route("/dashboard")
 @login_required
@@ -47,6 +48,8 @@ def dashboard():
     Delegates business logic to the service layer when available.
     """
     uid = current_user.id
+    validate_user_context(uid, raise_error=True)
+    finance_logger.info(f"User {uid} accessed dashboard")
 
     if svc and hasattr(svc, "get_dashboard_context"):
         ctx = svc.get_dashboard_context(uid)
@@ -124,84 +127,79 @@ def dashboard():
 @login_required
 def add_income():
     """
-    Accepts form-submitted or JSON income data.
-    Uses service layer if available; otherwise performs a small inline create.
+    Create income from form/JSON data using WTF forms validation.
     """
     uid = current_user.id
-    data = request.get_json(silent=True) or request.form
-
-    amount, err = _parse_amount(data.get("amount"))
-    if err:
-        flash(err, "danger")
-        return redirect(url_for("finance.dashboard"))
-
-    source = (data.get("source") or "").strip() or "Unknown"
-    date_str = data.get("date")
+    form = IncomeForm()
+    
+    if not form.validate_on_submit():
+        flash("Invalid income data. Please check your input.", "danger")
+        return redirect(url_for("finance.income_page"))
+    
     try:
-        date_val = datetime.fromisoformat(date_str).date() if date_str else None
-    except Exception:
-        date_val = None
-
-    if svc and hasattr(svc, "create_income"):
-        inc = svc.create_income(uid, amount, source, date_val)
-    else:
-        from finflow.finance.models import Income  # type: ignore
-
-        inc = Income(
+        income = Income(
             user_id=uid,
-            amount=amount,
-            source=source,
-            date=date_val or datetime.utcnow(),
+            amount=form.amount.data,
+            source=form.source.data.strip(),
+            date=form.date.data or datetime.utcnow().date(),
+            note=form.note.data.strip() if form.note.data else None,
         )
-        db.session.add(inc)
+        db.session.add(income)
         db.session.commit()
-
-    if request.is_json:
-        return jsonify(
-            {"status": "created", "income": getattr(inc, "to_dict", lambda: {})()}
-        ), 201
-
-    flash("Income added.", "success")
-    return redirect(url_for("finance.dashboard"))
+        
+        log_transaction(uid, "income", form.source.data, float(form.amount.data))
+        flash("Income added successfully!", "success")
+        
+        if request.is_json:
+            return jsonify({"status": "created", "income": income.to_dict()}), 201
+        return redirect(url_for("finance.income_page"))
+    except Exception as e:
+        db.session.rollback()
+        finance_logger.error(f"Failed to add income for user {uid}: {str(e)}")
+        flash("Failed to add income. Please try again.", "danger")
+        return redirect(url_for("finance.income_page")) if not request.is_json else jsonify({"error": "Failed to create income"}), 500
 
 
 @finance_bp.route("/income", methods=["GET"])
 @login_required
 def list_incomes():
-    """Return list of incomes for the current user as JSON."""
+    """Return list of incomes for the current user as JSON with pagination."""
     uid = current_user.id
-    if svc and hasattr(svc, "list_incomes"):
-        items = svc.list_incomes(uid)
-    else:
-        from finflow.finance.models import Income  # type: ignore
-
-        items = (
-            Income.query.filter_by(user_id=uid)
-            .order_by(Income.date.desc())
-            .limit(current_app.config.get("DEFAULT_PAGE_SIZE", 50))
-            .all()
-        )
-    # Ensure JSON-serializable
-    return jsonify(
-        [getattr(i, "to_dict", lambda: {"id": getattr(i, "id", None)})() for i in items]
-    )
+    validate_user_context(uid, raise_error=True)
+    
+    page = get_page_from_request()
+    per_page = get_per_page_from_request()
+    
+    query = Income.query.filter_by(user_id=uid).order_by(Income.date.desc())
+    paginator = Paginator(query, page=page, per_page=per_page)
+    items = paginator.get_items()
+    
+    return jsonify({
+        "incomes": [i.to_dict() for i in items],
+        "pagination": paginator.to_dict()
+    })
 
 
 @finance_bp.route("/income/list", methods=["GET"])
 @login_required
 def income_page():
+    """Display income list with pagination."""
     uid = current_user.id
-    from finflow.finance.models import Income  # type: ignore
-
-    items = (
-        Income.query.filter_by(user_id=uid)
-        .order_by(Income.date.desc())
-        .limit(current_app.config.get("DEFAULT_PAGE_SIZE", 50))
-        .all()
-    )
+    validate_user_context(uid, raise_error=True)
+    
+    page = get_page_from_request()
+    per_page = get_per_page_from_request()
+    
+    query = Income.query.filter_by(user_id=uid).order_by(Income.date.desc())
+    paginator = Paginator(query, page=page, per_page=per_page)
+    items = paginator.get_items()
+    
+    finance_logger.info(f"User {uid} viewed income list (page {page}, per_page {per_page})")
+    
     return render_template(
         "income.html",
         incomes=items,
+        paginator=paginator,
         today=datetime.utcnow().date().isoformat(),
     )
 
@@ -209,99 +207,105 @@ def income_page():
 @finance_bp.route("/income/<int:item_id>", methods=["DELETE"])
 @login_required
 def delete_income(item_id: int):
+    """Delete an income record with permission validation."""
     uid = current_user.id
-    if svc and hasattr(svc, "delete_income"):
-        ok = svc.delete_income(uid, item_id)
-        status = 200 if ok else 403
-        return jsonify({"deleted": ok}), status
-    else:
-        from finflow.finance.models import Income  # type: ignore
-
-        inc = Income.query.get_or_404(item_id)
-        if inc.user_id != uid:
-            return jsonify({"error": "not authorized"}), 403
-        db.session.delete(inc)
+    
+    income = Income.query.get_or_404(item_id)
+    
+    # Validate user owns this income before deletion
+    if not ensure_user_owns_data(income, raise_error=False):
+        finance_logger.warning(f"User {uid} attempted to delete income {item_id} they don't own")
+        return jsonify({"error": "Forbidden"}), 403
+    
+    try:
+        amount = float(income.amount)
+        db.session.delete(income)
         db.session.commit()
+        
+        log_transaction(uid, "income_delete", income.source, amount, status="success")
         return jsonify({"deleted": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        finance_logger.error(f"Failed to delete income {item_id} for user {uid}: {str(e)}")
+        return jsonify({"error": "Failed to delete income"}), 500
 
 
 # ===== Expense endpoints =====
 @finance_bp.route("/expense", methods=["POST"])
 @login_required
 def add_expense():
+    """Create expense from form/JSON data using WTF forms validation."""
     uid = current_user.id
-    data = request.get_json(silent=True) or request.form
-
-    amount, err = _parse_amount(data.get("amount"))
-    if err:
-        flash(err, "danger")
-        return redirect(url_for("finance.dashboard"))
-
-    category = (data.get("category") or "").strip() or "Others"
-    date_str = data.get("date")
+    form = ExpenseForm()
+    
+    if not form.validate_on_submit():
+        flash("Invalid expense data. Please check your input.", "danger")
+        return redirect(url_for("finance.expense_page"))
+    
     try:
-        date_val = datetime.fromisoformat(date_str).date() if date_str else None
-    except Exception:
-        date_val = None
-
-    if svc and hasattr(svc, "create_expense"):
-        exp = svc.create_expense(uid, amount, category, date_val)
-    else:
-        from finflow.finance.models import Expense  # type: ignore
-
-        exp = Expense(
+        expense = Expense(
             user_id=uid,
-            amount=amount,
-            category=category,
-            date=date_val or datetime.utcnow(),
+            amount=form.amount.data,
+            category=form.category.data,
+            date=form.date.data or datetime.utcnow().date(),
+            note=form.description.data.strip() if form.description.data else None,
         )
-        db.session.add(exp)
+        db.session.add(expense)
         db.session.commit()
-
-    if request.is_json:
-        return jsonify(
-            {"status": "created", "expense": getattr(exp, "to_dict", lambda: {})()}
-        ), 201
-
-    flash("Expense added.", "success")
-    return redirect(url_for("finance.dashboard"))
+        
+        log_transaction(uid, "expense", form.category.data, float(form.amount.data))
+        flash("Expense added successfully!", "success")
+        
+        if request.is_json:
+            return jsonify({"status": "created", "expense": expense.to_dict()}), 201
+        return redirect(url_for("finance.expense_page"))
+    except Exception as e:
+        db.session.rollback()
+        finance_logger.error(f"Failed to add expense for user {uid}: {str(e)}")
+        flash("Failed to add expense. Please try again.", "danger")
+        return redirect(url_for("finance.expense_page")) if not request.is_json else jsonify({"error": "Failed to create expense"}), 500
 
 
 @finance_bp.route("/expense", methods=["GET"])
 @login_required
 def list_expenses():
+    """Return list of expenses for the current user as JSON with pagination."""
     uid = current_user.id
-    if svc and hasattr(svc, "list_expenses"):
-        items = svc.list_expenses(uid)
-    else:
-        from finflow.finance.models import Expense  # type: ignore
-
-        items = (
-            Expense.query.filter_by(user_id=uid)
-            .order_by(Expense.date.desc())
-            .limit(current_app.config.get("DEFAULT_PAGE_SIZE", 50))
-            .all()
-        )
-    return jsonify(
-        [getattr(e, "to_dict", lambda: {"id": getattr(e, "id", None)})() for e in items]
-    )
+    validate_user_context(uid, raise_error=True)
+    
+    page = get_page_from_request()
+    per_page = get_per_page_from_request()
+    
+    query = Expense.query.filter_by(user_id=uid).order_by(Expense.date.desc())
+    paginator = Paginator(query, page=page, per_page=per_page)
+    items = paginator.get_items()
+    
+    return jsonify({
+        "expenses": [e.to_dict() for e in items],
+        "pagination": paginator.to_dict()
+    })
 
 
 @finance_bp.route("/expense/list", methods=["GET"])
 @login_required
 def expense_page():
+    """Display expense list with pagination."""
     uid = current_user.id
-    from finflow.finance.models import Expense  # type: ignore
-
-    items = (
-        Expense.query.filter_by(user_id=uid)
-        .order_by(Expense.date.desc())
-        .limit(current_app.config.get("DEFAULT_PAGE_SIZE", 50))
-        .all()
-    )
+    validate_user_context(uid, raise_error=True)
+    
+    page = get_page_from_request()
+    per_page = get_per_page_from_request()
+    
+    query = Expense.query.filter_by(user_id=uid).order_by(Expense.date.desc())
+    paginator = Paginator(query, page=page, per_page=per_page)
+    items = paginator.get_items()
+    
+    finance_logger.info(f"User {uid} viewed expense list (page {page}, per_page {per_page})")
+    
     return render_template(
         "expense.html",
         expenses=items,
+        paginator=paginator,
         today=datetime.utcnow().date().isoformat(),
     )
 
@@ -309,34 +313,43 @@ def expense_page():
 @finance_bp.route("/expense/<int:item_id>", methods=["DELETE"])
 @login_required
 def delete_expense(item_id: int):
+    """Delete an expense record with permission validation."""
     uid = current_user.id
-    if svc and hasattr(svc, "delete_expense"):
-        ok = svc.delete_expense(uid, item_id)
-        status = 200 if ok else 403
-        return jsonify({"deleted": ok}), status
-    else:
-        from finflow.finance.models import Expense  # type: ignore
-
-        exp = Expense.query.get_or_404(item_id)
-        if exp.user_id != uid:
-            return jsonify({"error": "not authorized"}), 403
-        db.session.delete(exp)
+    
+    expense = Expense.query.get_or_404(item_id)
+    
+    # Validate user owns this expense before deletion
+    if not ensure_user_owns_data(expense, raise_error=False):
+        finance_logger.warning(f"User {uid} attempted to delete expense {item_id} they don't own")
+        return jsonify({"error": "Forbidden"}), 403
+    
+    try:
+        amount = float(expense.amount)
+        db.session.delete(expense)
         db.session.commit()
+        
+        log_transaction(uid, "expense_delete", expense.category, amount, status="success")
         return jsonify({"deleted": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        finance_logger.error(f"Failed to delete expense {item_id} for user {uid}: {str(e)}")
+        return jsonify({"error": "Failed to delete expense"}), 500
 
 
 # ===== Budget =====
 @finance_bp.route("/budget", methods=["GET"])
 @login_required
 def budget_page():
+    """Display budget page for current month."""
     uid = current_user.id
+    validate_user_context(uid, raise_error=True)
+    
     month = request.args.get("month") or datetime.utcnow().strftime("%Y-%m")
+    finance_logger.info(f"User {uid} viewed budget for month {month}")
 
     if svc and hasattr(svc, "get_budget"):
         b = svc.get_budget(uid, month)
     else:
-        from finflow.finance.models import Budget  # type: ignore
-
         b = Budget.query.filter_by(user_id=uid, month=month).first()
 
     return render_template("budget.html", budget=b, current_month=month)
@@ -345,46 +358,50 @@ def budget_page():
 @finance_bp.route("/budget", methods=["POST"])
 @login_required
 def set_budget():
+    """Set budget for a month using WTF form."""
     uid = current_user.id
-    data = request.get_json(silent=True) or request.form
-    month = (data.get("month") or "").strip()
-    amount, err = _parse_amount(data.get("amount"))
-    if err:
-        flash(err, "danger")
-        return redirect(url_for("finance.dashboard"))
-
-    if svc and hasattr(svc, "set_budget"):
-        b = svc.set_budget(uid, month, amount)
-    else:
-        from finflow.finance.models import Budget  # type: ignore
-
+    form = BudgetForm()
+    
+    if not form.validate_on_submit():
+        flash("Invalid budget data. Please check your input.", "danger")
+        return redirect(url_for("finance.budget_page"))
+    
+    month = request.args.get("month") or datetime.utcnow().strftime("%Y-%m")
+    
+    try:
         b = Budget.query.filter_by(user_id=uid, month=month).first()
         if not b:
-            b = Budget(user_id=uid, month=month, amount=amount)
+            b = Budget(user_id=uid, month=month, amount=form.limit.data)
             db.session.add(b)
         else:
-            b.amount = amount
+            b.amount = form.limit.data
         db.session.commit()
-
-    if request.is_json:
-        return jsonify(
-            {"status": "ok", "budget": getattr(b, "to_dict", lambda: {})()}
-        ), 200
-
-    flash("Budget set.", "success")
-    return redirect(url_for("finance.dashboard"))
+        
+        log_transaction(uid, "budget_set", "monthly", float(form.limit.data))
+        flash("Budget set successfully!", "success")
+        
+        if request.is_json:
+            return jsonify({"status": "ok", "budget": b.to_dict()}), 200
+        return redirect(url_for("finance.budget_page"))
+    except Exception as e:
+        db.session.rollback()
+        finance_logger.error(f"Failed to set budget for user {uid} month {month}: {str(e)}")
+        flash("Failed to set budget. Please try again.", "danger")
+        return redirect(url_for("finance.budget_page")) if not request.is_json else jsonify({"error": "Failed to set budget"}), 500
 
 
 # ===== Simple API: summary for charts =====
 @finance_bp.route("/api/summary")
 @login_required
 def api_summary():
+    """Get financial summary for current user."""
     uid = current_user.id
+    validate_user_context(uid, raise_error=True)
+    finance_logger.info(f"User {uid} accessed API summary")
+    
     if svc and hasattr(svc, "get_summary"):
         summary = svc.get_summary(uid)
     else:
-        from finflow.finance.models import Expense, Income  # type: ignore
-
         total_income = (
             db.session.query(db.func.coalesce(db.func.sum(Income.amount), 0))
             .filter(Income.user_id == uid)
@@ -404,12 +421,14 @@ def api_summary():
 @finance_bp.route("/reports", methods=["GET"])
 @login_required
 def reports_page():
+    """Display financial reports page."""
     uid = current_user.id
+    validate_user_context(uid, raise_error=True)
+    finance_logger.info(f"User {uid} accessed reports page")
+    
     if svc and hasattr(svc, "get_totals"):
         summary = svc.get_totals(uid)
     else:
-        from finflow.finance.models import Expense, Income  # type: ignore
-
         total_income = (
             db.session.query(db.func.coalesce(db.func.sum(Income.amount), 0))
             .filter(Income.user_id == uid)
@@ -431,8 +450,6 @@ def reports_page():
     if svc and hasattr(svc, "expense_by_category"):
         categories = svc.expense_by_category(uid)
     else:
-        from finflow.finance.models import Expense  # type: ignore
-
         rows = (
             db.session.query(
                 Expense.category, db.func.coalesce(db.func.sum(Expense.amount), 0)

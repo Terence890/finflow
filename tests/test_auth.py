@@ -9,7 +9,7 @@ Tests cover:
 - Login persistence
 """
 
-from auth.model import User
+from finflow.auth.model import User
 
 
 class TestUserModel:

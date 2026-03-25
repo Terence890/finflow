@@ -9,8 +9,8 @@ Provides:
 """
 
 import pytest
-from app import create_app, db
-from auth.model import User
+from finflow.app import create_app, db
+from finflow.auth.model import User
 
 
 @pytest.fixture
