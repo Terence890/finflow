@@ -84,20 +84,14 @@ class ExpenseForm(FlaskForm):
 class BudgetForm(FlaskForm):
     """Form to add or edit budget records."""
 
-    CATEGORIES = [
-        ("Food", "Food"),
-        ("Travel", "Travel"),
-        ("Shopping", "Shopping"),
-        ("Bills", "Bills"),
-        ("Others", "Others"),
-    ]
-
-    category = SelectField(
-        "Category",
-        choices=CATEGORIES,
-        validators=[DataRequired("Category is required.")],
+    month = StringField(
+        "Month",
+        validators=[
+            DataRequired("Month is required."),
+            Length(min=7, max=7, message="Month must be in YYYY-MM format."),
+        ],
     )
-    limit = DecimalField(
+    amount = DecimalField(
         "Monthly Limit",
         validators=[
             DataRequired("Budget limit is required."),
@@ -186,6 +180,17 @@ class IncomeFilterForm(TransactionFilterForm):
 
 class ExpenseFilterForm(TransactionFilterForm):
     """Form to filter expenses (inherits from TransactionFilterForm)."""
-    
-    pass
+    category = SelectField(
+        "Category",
+        choices=[
+            ("all", "All Categories"),
+            ("Food", "Food"),
+            ("Travel", "Travel"),
+            ("Shopping", "Shopping"),
+            ("Bills", "Bills"),
+            ("Others", "Others"),
+        ],
+        default="all",
+        validators=[OptionalValidator()],
+    )
 

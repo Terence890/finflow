@@ -42,14 +42,14 @@ class TestAuthRoutes:
 
     def test_register_get(self, client):
         """Test GET /register returns registration form."""
-        response = client.get("/register")
+        response = client.get("/auth/register")
         assert response.status_code == 200
         assert b"register" in response.data.lower()
 
     def test_register_post_success(self, client):
         """Test successful user registration."""
         response = client.post(
-            "/register",
+            "/auth/register",
             data={
                 "name": "New User",
                 "email": "newuser@example.com",
@@ -63,7 +63,7 @@ class TestAuthRoutes:
     def test_register_post_mismatch_password(self, client):
         """Test registration with mismatched passwords."""
         response = client.post(
-            "/register",
+            "/auth/register",
             data={
                 "name": "User",
                 "email": "user@example.com",
@@ -75,14 +75,14 @@ class TestAuthRoutes:
 
     def test_login_get(self, client):
         """Test GET /login returns login form."""
-        response = client.get("/login")
+        response = client.get("/auth/login")
         assert response.status_code == 200
         assert b"login" in response.data.lower()
 
     def test_login_success(self, client, test_user):
         """Test successful login."""
         response = client.post(
-            "/login",
+            "/auth/login",
             data={"email": "test@example.com", "password": "secure_password_123"},
             follow_redirects=True,
         )
@@ -91,7 +91,7 @@ class TestAuthRoutes:
     def test_login_invalid_email(self, client):
         """Test login with non-existent email."""
         response = client.post(
-            "/login",
+            "/auth/login",
             data={"email": "nonexistent@example.com", "password": "anypassword"},
         )
         assert response.status_code == 200
@@ -99,17 +99,17 @@ class TestAuthRoutes:
     def test_login_invalid_password(self, client, test_user):
         """Test login with wrong password."""
         response = client.post(
-            "/login",
+            "/auth/login",
             data={"email": "test@example.com", "password": "wrongpassword"},
         )
         assert response.status_code == 200
 
     def test_logout(self, authenticated_client):
         """Test logout functionality."""
-        response = authenticated_client.get("/logout", follow_redirects=True)
+        response = authenticated_client.get("/auth/logout", follow_redirects=True)
         assert response.status_code == 200
 
     def test_authenticated_user_redirect(self, authenticated_client):
         """Test authenticated user redirect from login."""
-        response = authenticated_client.get("/login")
+        response = authenticated_client.get("/auth/login")
         assert response.status_code == 302

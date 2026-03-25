@@ -57,7 +57,7 @@ def test_user(app):
 def authenticated_client(client, test_user):
     """Client with authenticated user session."""
     client.post(
-        "/login",
+        "/auth/login",
         data={"email": "test@example.com", "password": "secure_password_123"},
     )
     return client

@@ -33,7 +33,7 @@
     <span class="card-pill">Form</span>
   </div>
   <form method="post" action="{{ url_for('finance.add_income') }}">
-    {{ csrf_token() if csrf_token is defined }}
+    {{ form.csrf_token if form is defined and form.csrf_token is defined }}
     <label>Amount</label>
     <input class="input" type="number" name="amount" step="0.01" required>
     <label>Source</label>
@@ -41,6 +41,29 @@
     <label>Date</label>
     <input class="input" type="date" name="date" value="{{ today }}" required>
     <button class="btn btn-primary" type="submit">Add Income</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <h3>Filter Income</h3>
+    </div>
+  </div>
+  <form method="get" action="{{ url_for('finance.income_page') }}" class="filter-grid">
+    <label>Source</label>
+    <input class="input" type="text" name="source" value="{{ request.args.get('source', '') }}" placeholder="Salary, freelance...">
+    <label>Start Date</label>
+    <input class="input" type="date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+    <label>End Date</label>
+    <input class="input" type="date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+    <label>Min Amount</label>
+    <input class="input" type="number" step="0.01" name="min_amount" value="{{ request.args.get('min_amount', '') }}">
+    <label>Max Amount</label>
+    <input class="input" type="number" step="0.01" name="max_amount" value="{{ request.args.get('max_amount', '') }}">
+    <label>Per Page</label>
+    <input class="input" type="number" min="1" max="100" name="per_page" value="{{ request.args.get('per_page', 20) }}">
+    <button class="btn btn-secondary" type="submit">Apply Filters</button>
   </form>
 </div>
 
@@ -83,6 +106,20 @@
     </tbody>
   </table>
 </div>
+
+{% if paginator is defined and paginator.total_pages > 1 %}
+<div class="card">
+  <div class="pagination-row">
+    {% if paginator.has_prev %}
+      <a class="btn btn-secondary" href="{{ url_for('finance.income_page', page=paginator.prev_page, per_page=paginator.per_page, source=request.args.get('source', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), min_amount=request.args.get('min_amount', ''), max_amount=request.args.get('max_amount', '')) }}">Previous</a>
+    {% endif %}
+    <span class="muted">Page {{ paginator.page }} of {{ paginator.total_pages }} ({{ paginator.total }} items)</span>
+    {% if paginator.has_next %}
+      <a class="btn btn-secondary" href="{{ url_for('finance.income_page', page=paginator.next_page, per_page=paginator.per_page, source=request.args.get('source', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), min_amount=request.args.get('min_amount', ''), max_amount=request.args.get('max_amount', '')) }}">Next</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

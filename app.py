@@ -23,6 +23,7 @@ if "finflow.app" not in sys.modules:
 from flask import Flask, redirect, url_for
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
+from finflow.common.logger import setup_app_logging
 
 # Extensions (single instances to be imported elsewhere if needed)
 db = SQLAlchemy()
@@ -35,6 +36,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     Accepts optional test_config for easier testing.
     """
     app = Flask(__name__, instance_relative_config=True)
+    setup_app_logging()
 
     # Ensure instance folder exists for SQLite DB and instance config
     os.makedirs(app.instance_path, exist_ok=True)

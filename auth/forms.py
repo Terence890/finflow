@@ -11,7 +11,7 @@ Uses Flask-WTF for CSRF protection and validation.
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
-from auth.model import User
+from finflow.auth.model import User
 
 
 class LoginForm(FlaskForm):

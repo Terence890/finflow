@@ -11,6 +11,7 @@ Flask-SQLAlchemy>=3.0,<4
 SQLAlchemy>=1.4,<2
 Werkzeug>=2.2,<3
 Flask-WTF>=1.1,<2           # optional: forms + CSRF protection
+email-validator>=2.0,<3     # required by WTForms Email validator
 python-dotenv>=0.21,<1      # load .env for config in development
 gunicorn>=20.1,<21          # production WSGI server (optional)
 psycopg2-binary>=2.9,<3     # optional: Postgres driver (keep for portability)

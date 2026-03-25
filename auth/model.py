@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from finflow.app import db
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 class User(db.Model, UserMixin):
@@ -22,7 +26,7 @@ class User(db.Model, UserMixin):
     email: str = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash: str = db.Column(db.String(128), nullable=False)
     created_at: datetime = db.Column(
-        db.DateTime, default=datetime.utcnow, nullable=False
+        db.DateTime, default=_utc_now, nullable=False
     )
 
     def set_password(self, password: str) -> None:

@@ -1,0 +1,81 @@
+/* ---------- Layout: Sidebar + Main ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 22px;
+  align-items: start;
+  padding: 0 var(--container-pad) 40px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Sidebar */
+.sidebar {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  position: sticky;
+  top: 24px;
+  height: fit-content;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav a,
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  font-weight: 500;
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: inherit;
+}
+
+.nav-item span {
+  display: inline-block;
+}
+
+.nav a:hover,
+.nav-item:hover {
+  background: linear-gradient(90deg, rgba(255,95,162,0.06), rgba(255,193,217,0.04));
+  transform: translateY(-2px);
+}
+
+/* Active link */
+.nav a.active,
+.nav-item.active {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Main content ---------- */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* Cards row */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+

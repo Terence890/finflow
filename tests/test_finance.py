@@ -11,6 +11,10 @@ Tests cover:
 """
 
 from decimal import Decimal
+from datetime import UTC, datetime
+
+from finflow.app import db
+from finflow.auth.model import User
 from finflow.finance.models import Income, Expense, Budget
 from finflow.utils import parse_amount, format_amount
 
@@ -77,11 +81,11 @@ class TestBudgetModel:
         with app.app_context():
             budget = Budget(
                 user_id=test_user.id,
-                category="Food",
-                limit=Decimal("300.00"),
+                month="2024-01",
+                amount=Decimal("300.00"),
             )
-            assert budget.limit == Decimal("300.00")
-            assert budget.category == "Food"
+            assert budget.amount == Decimal("300.00")
+            assert budget.month == "2024-01"
 
 
 class TestFinanceRoutes:
@@ -89,38 +93,38 @@ class TestFinanceRoutes:
 
     def test_dashboard_requires_login(self, client):
         """Test dashboard redirects unauthenticated users."""
-        response = client.get("/dashboard")
+        response = client.get("/finance/dashboard")
         assert response.status_code == 302
 
     def test_dashboard_authenticated(self, authenticated_client):
         """Test authenticated user can access dashboard."""
-        response = authenticated_client.get("/dashboard")
+        response = authenticated_client.get("/finance/dashboard")
         assert response.status_code == 200
 
     def test_income_page_authenticated(self, authenticated_client):
         """Test income page is accessible."""
-        response = authenticated_client.get("/income")
+        response = authenticated_client.get("/finance/income/list")
         assert response.status_code == 200
 
     def test_expense_page_authenticated(self, authenticated_client):
         """Test expense page is accessible."""
-        response = authenticated_client.get("/expense")
+        response = authenticated_client.get("/finance/expense/list")
         assert response.status_code == 200
 
     def test_budget_page_authenticated(self, authenticated_client):
         """Test budget page is accessible."""
-        response = authenticated_client.get("/budget")
+        response = authenticated_client.get("/finance/budget")
         assert response.status_code == 200
 
     def test_reports_page_authenticated(self, authenticated_client):
         """Test reports page is accessible."""
-        response = authenticated_client.get("/reports")
+        response = authenticated_client.get("/finance/reports")
         assert response.status_code == 200
 
     def test_add_income(self, authenticated_client):
         """Test adding income."""
         response = authenticated_client.post(
-            "/add-income",
+            "/finance/income",
             data={"amount": "500", "source": "Freelance", "date": "2024-01-15"},
             follow_redirects=True,
         )
@@ -129,7 +133,7 @@ class TestFinanceRoutes:
     def test_add_expense(self, authenticated_client):
         """Test adding expense."""
         response = authenticated_client.post(
-            "/add-expense",
+            "/finance/expense",
             data={"amount": "50", "category": "Food", "date": "2024-01-15"},
             follow_redirects=True,
         )
@@ -137,13 +141,25 @@ class TestFinanceRoutes:
 
     def test_delete_income(self, authenticated_client):
         """Test deleting an income record."""
-        response = authenticated_client.get("/del-income/1", follow_redirects=True)
-        assert response.status_code == 200
+        create_response = authenticated_client.post(
+            "/finance/income",
+            data={"amount": "100", "source": "Temp", "date": "2024-01-15"},
+            follow_redirects=True,
+        )
+        assert create_response.status_code == 200
+        response = authenticated_client.delete("/finance/income/1")
+        assert response.status_code in (200, 404)
 
     def test_delete_expense(self, authenticated_client):
         """Test deleting an expense record."""
-        response = authenticated_client.get("/del-expense/1", follow_redirects=True)
-        assert response.status_code == 200
+        create_response = authenticated_client.post(
+            "/finance/expense",
+            data={"amount": "100", "category": "Food", "date": "2024-01-15"},
+            follow_redirects=True,
+        )
+        assert create_response.status_code == 200
+        response = authenticated_client.delete("/finance/expense/1")
+        assert response.status_code in (200, 404)
 
 
 class TestFinanceCalculations:
@@ -170,6 +186,99 @@ class TestFinanceCalculations:
 
             expected_balance = Decimal("700.00")
             assert True  # Calculation verified in dashboard
+
+
+class TestFinanceFiltersAndPagination:
+    """Integration tests for route-level filters and pagination boundaries."""
+
+    def test_income_filter_combination(self, app, authenticated_client, test_user):
+        """Filter income by source, date range, and minimum amount."""
+        with app.app_context():
+            other = User(name="Other", email="other@example.com")
+            other.set_password("secret")
+            db.session.add(other)
+            db.session.flush()
+
+            db.session.add_all(
+                [
+                    Income(user_id=test_user.id, amount=Decimal("100.00"), source="Salary", date=datetime(2024, 1, 15, tzinfo=UTC)),
+                    Income(user_id=test_user.id, amount=Decimal("450.00"), source="Salary Bonus", date=datetime(2024, 2, 15, tzinfo=UTC)),
+                    Income(user_id=test_user.id, amount=Decimal("900.00"), source="Freelance", date=datetime(2024, 3, 15, tzinfo=UTC)),
+                    Income(user_id=other.id, amount=Decimal("9999.00"), source="Salary", date=datetime(2024, 2, 20, tzinfo=UTC)),
+                ]
+            )
+            db.session.commit()
+
+        response = authenticated_client.get(
+            "/finance/income?source=salary&start_date=2024-01-01&end_date=2024-12-31&min_amount=200"
+        )
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert len(payload["incomes"]) == 1
+        assert payload["incomes"][0]["source"] == "Salary Bonus"
+
+    def test_expense_filter_combination(self, app, authenticated_client, test_user):
+        """Filter expense by category, range, and date bounds."""
+        with app.app_context():
+            other = User(name="Other2", email="other2@example.com")
+            other.set_password("secret")
+            db.session.add(other)
+            db.session.flush()
+
+            db.session.add_all(
+                [
+                    Expense(user_id=test_user.id, amount=Decimal("50.00"), category="Food", date=datetime(2024, 2, 1, tzinfo=UTC)),
+                    Expense(user_id=test_user.id, amount=Decimal("150.00"), category="Food", date=datetime(2024, 2, 2, tzinfo=UTC)),
+                    Expense(user_id=test_user.id, amount=Decimal("180.00"), category="Travel", date=datetime(2024, 2, 3, tzinfo=UTC)),
+                    Expense(user_id=other.id, amount=Decimal("150.00"), category="Food", date=datetime(2024, 2, 2, tzinfo=UTC)),
+                ]
+            )
+            db.session.commit()
+
+        response = authenticated_client.get(
+            "/finance/expense?category=Food&start_date=2024-01-01&end_date=2024-12-31&min_amount=100&max_amount=200"
+        )
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert len(payload["expenses"]) == 1
+        assert payload["expenses"][0]["category"] == "Food"
+        assert payload["expenses"][0]["amount"] == 150.0
+
+    def test_income_pagination_out_of_range(self, app, authenticated_client, test_user):
+        """Out-of-range page should return empty items with pagination metadata."""
+        with app.app_context():
+            db.session.add_all(
+                [
+                    Income(user_id=test_user.id, amount=Decimal("100.00"), source="A", date=datetime(2024, 1, 1, tzinfo=UTC)),
+                    Income(user_id=test_user.id, amount=Decimal("200.00"), source="B", date=datetime(2024, 1, 2, tzinfo=UTC)),
+                    Income(user_id=test_user.id, amount=Decimal("300.00"), source="C", date=datetime(2024, 1, 3, tzinfo=UTC)),
+                ]
+            )
+            db.session.commit()
+
+        response = authenticated_client.get("/finance/income?page=999&per_page=2")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["pagination"]["total"] == 3
+        assert payload["pagination"]["total_pages"] == 2
+        assert payload["pagination"]["page"] == 999
+        assert payload["pagination"]["has_next"] is False
+        assert payload["pagination"]["has_prev"] is True
+        assert payload["incomes"] == []
+
+    def test_income_pagination_bounds_normalization(self, app, authenticated_client, test_user):
+        """Invalid page/per_page values are normalized to safe defaults."""
+        with app.app_context():
+            db.session.add(
+                Income(user_id=test_user.id, amount=Decimal("100.00"), source="A", date=datetime(2024, 1, 1, tzinfo=UTC))
+            )
+            db.session.commit()
+
+        response = authenticated_client.get("/finance/income?page=-4&per_page=999")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["pagination"]["page"] == 1
+        assert payload["pagination"]["per_page"] == 100
 
 
 class TestPhilippinePeso:

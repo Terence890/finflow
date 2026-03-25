@@ -8,17 +8,16 @@ Provides:
 """
 
 from functools import wraps
-from typing import Callable, Optional, Type
+from typing import Any, Callable, Optional, Type
 
 from flask import jsonify, redirect, url_for, abort, request
 from flask_login import current_user
-from sqlalchemy.orm import Model
 
 from finflow.common.logger import log_permission_error
 
 
 def require_owned_by_user(
-    model_class: Type[Model],
+    model_class: Type[Any],
     id_param: str = "item_id",
     user_id_attr: str = "user_id"
 ) -> Callable:
@@ -67,7 +66,7 @@ def require_owned_by_user(
 
 
 def check_user_owns_data(
-    model: Model,
+    model: Any,
     user_id_attr: str = "user_id"
 ) -> bool:
     """
@@ -88,7 +87,7 @@ def check_user_owns_data(
 
 
 def ensure_user_owns_data(
-    model: Model,
+    model: Any,
     user_id_attr: str = "user_id",
     raise_error: bool = True
 ) -> bool:

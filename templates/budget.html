@@ -33,11 +33,11 @@
     <span class="card-pill">Form</span>
   </div>
   <form method="post" action="{{ url_for('finance.set_budget') }}">
-    {{ csrf_token() if csrf_token is defined }}
+    {{ form.csrf_token if form is defined and form.csrf_token is defined }}
     <label>Month</label>
     <input class="input" type="month" name="month" value="{{ current_month }}" required>
     <label>Amount</label>
-    <input class="input" type="number" name="amount" step="0.01" required>
+    <input class="input" type="number" name="amount" step="0.01" value="{{ budget.amount if budget else '' }}" required>
     <button class="btn btn-primary" type="submit">Save Budget</button>
   </form>
 </div>

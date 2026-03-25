@@ -11,7 +11,7 @@ Each model is intentionally compact and focused on a single responsibility.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -29,6 +29,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
 class Income(db.Model):
     __tablename__ = "incomes"
 
@@ -36,7 +40,7 @@ class Income(db.Model):
     user_id: int = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     amount: Decimal = Column(Numeric(12, 2), nullable=False)
     source: str = Column(String(120), nullable=False)
-    date: datetime = Column(DateTime, default=datetime.utcnow, nullable=False)
+    date: datetime = Column(DateTime, default=_utc_now, nullable=False)
     note: Optional[str] = Column(String(255), nullable=True)
 
     user = relationship("User", backref="incomes")
@@ -64,7 +68,7 @@ class Expense(db.Model):
     user_id: int = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     amount: Decimal = Column(Numeric(12, 2), nullable=False)
     category: str = Column(String(50), nullable=False)
-    date: datetime = Column(DateTime, default=datetime.utcnow, nullable=False)
+    date: datetime = Column(DateTime, default=_utc_now, nullable=False)
     note: Optional[str] = Column(String(255), nullable=True)
 
     user = relationship("User", backref="expenses")

@@ -1,0 +1,155 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Manrope:wght@400;600;700&display=swap");
+
+/* PinkLedger — Pink theme stylesheet
+   Finflow/static/css/style.css
+
+   Design tokens (from PRD):
+   Primary    : #FF5FA2
+   Secondary  : #FFC1D9
+   Background : #FFF5F9
+   Buttons    : #FF2F7D
+   Cards      : #FFFFFF
+
+   Guidelines:
+   - Minimal, rounded, soft shadows
+   - Readable typography
+   - Responsive sidebar + main layout
+*/
+
+/* ---------- Variables ---------- */
+:root {
+  --color-primary: #FF5FA2;
+  --color-secondary: #FFC1D9;
+  --color-bg: #FFF5F9;
+  --color-button: #FF2F7D;
+  --color-card: #FFFFFF;
+  --color-text: #2b2b2b;
+  --color-muted: #7a7a7a;
+  --radius: 12px;
+  --shadow-soft: 0 6px 18px rgba(255, 95, 162, 0.12);
+  --shadow-sm: 0 2px 6px rgba(0,0,0,0.06);
+  --max-width: 1100px;
+  --container-pad: 20px;
+  --gap: 18px;
+  --transition-fast: 180ms ease-in-out;
+  font-synthesis: none;
+  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-body: "Manrope", "Segoe UI", Arial, sans-serif;
+}
+
+/* ---------- Global ---------- */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background: radial-gradient(circle at 20% 10%, #FFE3F0 0%, transparent 50%),
+    radial-gradient(circle at 80% 0%, #FFD9EA 0%, transparent 48%),
+    linear-gradient(180deg, var(--color-bg) 0%, #FFF9FB 100%);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  line-height: 1.35;
+  font-size: 16px;
+}
+
+.bg-orb {
+  position: fixed;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 95, 162, 0.2), transparent 70%);
+  filter: blur(8px);
+  z-index: 0;
+  pointer-events: none;
+  animation: float 12s ease-in-out infinite;
+}
+
+.orb-1 { top: -120px; left: -80px; }
+.orb-2 { top: 40px; right: -120px; animation-delay: 2s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(18px); }
+}
+
+/* Container */
+.container {
+  max-width: var(--max-width);
+  margin: 32px auto;
+  padding: 0 var(--container-pad);
+  padding-bottom: 24px;
+}
+
+/* ---------- Header ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 18px 22px;
+  background: linear-gradient(90deg, rgba(255, 95, 162, 0.85), rgba(255, 193, 217, 0.9));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  backdrop-filter: blur(8px);
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.logo .mark {
+  width: 42px;
+  height: 42px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  color: var(--color-button);
+  font-weight: 700;
+}
+
+.logo-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.logo-subtitle {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* Profile */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFEAF2, #FFDDF0);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+  color: var(--color-button);
+}
+

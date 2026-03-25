@@ -217,7 +217,7 @@ def parse_date(value: DateInput, try_formats: Optional[Sequence[str]] = None) ->
 
     Examples:
       parse_date("2023-02-15") -> date(2023,2,15)
-      parse_date(datetime.utcnow()) -> today's date
+    parse_date(datetime.now(UTC)) -> today's date
     """
     if value is None:
         raise ValueError("date value is None")

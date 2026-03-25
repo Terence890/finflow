@@ -12,6 +12,21 @@ import logging
 from typing import Optional
 
 
+def setup_app_logging(level: int = logging.INFO) -> None:
+    """Configure root logger once for consistent app-wide logging."""
+    root = logging.getLogger()
+    if root.handlers:
+        return
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+    root.setLevel(level)
+
+
 def get_logger(name: str) -> logging.Logger:
     """
     Get a configured logger instance.
@@ -92,7 +107,7 @@ def log_auth_event(
         email: User email (optional)
         status: "success" or "failed"
     """
-    identifier = email or f"user_{user_id}" if user_id else "unknown"
+    identifier = email or (f"user_{user_id}" if user_id else "unknown")
     message = f"{event.upper()} | {identifier} | Status: {status}"
     
     if status == "success":
