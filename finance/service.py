@@ -13,7 +13,7 @@ Notes:
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from io import StringIO
 from typing import Dict, List, Optional, Tuple
 
@@ -37,7 +37,7 @@ def add_income(
     except Exception:
         return None, "Invalid amount."
 
-    when = when or datetime.now(UTC).date()
+    when = when or datetime.now(timezone.utc).date()
     src = (source or "Income").strip()
 
     income = Income(user_id=user_id, amount=amt, source=src, date=when)
@@ -69,7 +69,7 @@ def add_expense(
     if not category:
         return None, "Category is required."
 
-    when = when or datetime.now(UTC).date()
+    when = when or datetime.now(timezone.utc).date()
     cat = category.strip()
 
     expense = Expense(user_id=user_id, amount=amt, category=cat, date=when)

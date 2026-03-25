@@ -106,6 +106,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             # Import models so SQLAlchemy registers tables before create_all
             from finflow.auth import model  # noqa: F401
             from finflow.finance import models  # noqa: F401
+
             db.create_all()
             print("Initialized the database.")
 

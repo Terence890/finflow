@@ -11,7 +11,7 @@ Tests cover:
 """
 
 from decimal import Decimal
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from finflow.app import db
 from finflow.auth.model import User
@@ -201,10 +201,30 @@ class TestFinanceFiltersAndPagination:
 
             db.session.add_all(
                 [
-                    Income(user_id=test_user.id, amount=Decimal("100.00"), source="Salary", date=datetime(2024, 1, 15, tzinfo=UTC)),
-                    Income(user_id=test_user.id, amount=Decimal("450.00"), source="Salary Bonus", date=datetime(2024, 2, 15, tzinfo=UTC)),
-                    Income(user_id=test_user.id, amount=Decimal("900.00"), source="Freelance", date=datetime(2024, 3, 15, tzinfo=UTC)),
-                    Income(user_id=other.id, amount=Decimal("9999.00"), source="Salary", date=datetime(2024, 2, 20, tzinfo=UTC)),
+                    Income(
+                        user_id=test_user.id,
+                        amount=Decimal("100.00"),
+                        source="Salary",
+                        date=datetime(2024, 1, 15, tzinfo=timezone.utc),
+                    ),
+                    Income(
+                        user_id=test_user.id,
+                        amount=Decimal("450.00"),
+                        source="Salary Bonus",
+                        date=datetime(2024, 2, 15, tzinfo=timezone.utc),
+                    ),
+                    Income(
+                        user_id=test_user.id,
+                        amount=Decimal("900.00"),
+                        source="Freelance",
+                        date=datetime(2024, 3, 15, tzinfo=timezone.utc),
+                    ),
+                    Income(
+                        user_id=other.id,
+                        amount=Decimal("9999.00"),
+                        source="Salary",
+                        date=datetime(2024, 2, 20, tzinfo=timezone.utc),
+                    ),
                 ]
             )
             db.session.commit()
@@ -227,10 +247,30 @@ class TestFinanceFiltersAndPagination:
 
             db.session.add_all(
                 [
-                    Expense(user_id=test_user.id, amount=Decimal("50.00"), category="Food", date=datetime(2024, 2, 1, tzinfo=UTC)),
-                    Expense(user_id=test_user.id, amount=Decimal("150.00"), category="Food", date=datetime(2024, 2, 2, tzinfo=UTC)),
-                    Expense(user_id=test_user.id, amount=Decimal("180.00"), category="Travel", date=datetime(2024, 2, 3, tzinfo=UTC)),
-                    Expense(user_id=other.id, amount=Decimal("150.00"), category="Food", date=datetime(2024, 2, 2, tzinfo=UTC)),
+                    Expense(
+                        user_id=test_user.id,
+                        amount=Decimal("50.00"),
+                        category="Food",
+                        date=datetime(2024, 2, 1, tzinfo=timezone.utc),
+                    ),
+                    Expense(
+                        user_id=test_user.id,
+                        amount=Decimal("150.00"),
+                        category="Food",
+                        date=datetime(2024, 2, 2, tzinfo=timezone.utc),
+                    ),
+                    Expense(
+                        user_id=test_user.id,
+                        amount=Decimal("180.00"),
+                        category="Travel",
+                        date=datetime(2024, 2, 3, tzinfo=timezone.utc),
+                    ),
+                    Expense(
+                        user_id=other.id,
+                        amount=Decimal("150.00"),
+                        category="Food",
+                        date=datetime(2024, 2, 2, tzinfo=timezone.utc),
+                    ),
                 ]
             )
             db.session.commit()
@@ -249,9 +289,24 @@ class TestFinanceFiltersAndPagination:
         with app.app_context():
             db.session.add_all(
                 [
-                    Income(user_id=test_user.id, amount=Decimal("100.00"), source="A", date=datetime(2024, 1, 1, tzinfo=UTC)),
-                    Income(user_id=test_user.id, amount=Decimal("200.00"), source="B", date=datetime(2024, 1, 2, tzinfo=UTC)),
-                    Income(user_id=test_user.id, amount=Decimal("300.00"), source="C", date=datetime(2024, 1, 3, tzinfo=UTC)),
+                    Income(
+                        user_id=test_user.id,
+                        amount=Decimal("100.00"),
+                        source="A",
+                        date=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                    ),
+                    Income(
+                        user_id=test_user.id,
+                        amount=Decimal("200.00"),
+                        source="B",
+                        date=datetime(2024, 1, 2, tzinfo=timezone.utc),
+                    ),
+                    Income(
+                        user_id=test_user.id,
+                        amount=Decimal("300.00"),
+                        source="C",
+                        date=datetime(2024, 1, 3, tzinfo=timezone.utc),
+                    ),
                 ]
             )
             db.session.commit()
@@ -266,11 +321,18 @@ class TestFinanceFiltersAndPagination:
         assert payload["pagination"]["has_prev"] is True
         assert payload["incomes"] == []
 
-    def test_income_pagination_bounds_normalization(self, app, authenticated_client, test_user):
+    def test_income_pagination_bounds_normalization(
+        self, app, authenticated_client, test_user
+    ):
         """Invalid page/per_page values are normalized to safe defaults."""
         with app.app_context():
             db.session.add(
-                Income(user_id=test_user.id, amount=Decimal("100.00"), source="A", date=datetime(2024, 1, 1, tzinfo=UTC))
+                Income(
+                    user_id=test_user.id,
+                    amount=Decimal("100.00"),
+                    source="A",
+                    date=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
             )
             db.session.commit()
 
@@ -322,10 +384,10 @@ class TestPhilippinePeso:
         """Test formatting amounts as PHP currency."""
         result = format_amount(Decimal("1000"))
         assert "1,000" in result or "1000" in result
-        
+
         result = format_amount(Decimal("10500.50"))
         assert "10,500.50" in result or "10500.50" in result
-        
+
         result = format_amount(Decimal("1234567.89"))
         assert "1,234,567" in result or "1234567" in result
 
@@ -370,7 +432,7 @@ class TestPhilippinePeso:
         result = format_amount(Decimal("1000"), "₱")
         assert "₱" in result
         assert "1,000" in result or "1000" in result
-        
+
         # Test with explicit currency code
         result_code = format_amount(Decimal("5000.50"), "PHP ")
         assert "PHP" in result_code
@@ -396,7 +458,7 @@ class TestPhilippinePeso:
         assert parse_amount("0") == Decimal("0")
         assert parse_amount("₱0") == Decimal("0")
         assert parse_amount("0.00") == Decimal("0.00")
-        
+
         # Whitespace handling
         assert parse_amount("  1000  ") == Decimal("1000")
         assert parse_amount("  ₱ 1000  ") == Decimal("1000")

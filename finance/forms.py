@@ -123,10 +123,13 @@ class DateRangeForm(FlaskForm):
 
 class TransactionFilterForm(FlaskForm):
     """Form to filter and paginate transactions."""
-    
+
     page = IntegerField(
         "Page",
-        validators=[OptionalValidator(), NumberRange(min=1, message="Page must be >= 1")],
+        validators=[
+            OptionalValidator(),
+            NumberRange(min=1, message="Page must be >= 1"),
+        ],
         default=1,
     )
     per_page = IntegerField(
@@ -159,11 +162,11 @@ class TransactionFilterForm(FlaskForm):
         validators=[OptionalValidator(), NumberRange(min=0)],
         places=2,
     )
-    
+
     def get_page(self) -> int:
         """Get page number with default."""
         return self.page.data if self.page.data else 1
-    
+
     def get_per_page(self) -> int:
         """Get per_page value with default."""
         return min(self.per_page.data or 20, 100)
@@ -171,7 +174,7 @@ class TransactionFilterForm(FlaskForm):
 
 class IncomeFilterForm(TransactionFilterForm):
     """Form to filter incomes with source field."""
-    
+
     source = StringField(
         "Source",
         validators=[OptionalValidator(), Length(max=120)],
@@ -180,6 +183,7 @@ class IncomeFilterForm(TransactionFilterForm):
 
 class ExpenseFilterForm(TransactionFilterForm):
     """Form to filter expenses (inherits from TransactionFilterForm)."""
+
     category = SelectField(
         "Category",
         choices=[
@@ -193,4 +197,3 @@ class ExpenseFilterForm(TransactionFilterForm):
         default="all",
         validators=[OptionalValidator()],
     )
-
