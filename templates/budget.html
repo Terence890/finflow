@@ -20,6 +20,21 @@
   </div>
 </div>
 
+{% if budget_alert is defined and budget_alert.has_budget %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <h3>Smart Alert</h3>
+    </div>
+    <span class="card-pill">{{ budget_alert.level|capitalize }}</span>
+  </div>
+  <div class="progress" style="height:14px;">
+    <div class="bar" style="width: {{ budget_alert.percent }}%;"></div>
+  </div>
+  <p class="muted" style="margin-top:10px;">{{ budget_alert.message }} ({{ budget_alert.percent }}%)</p>
+</div>
+{% endif %}
+
 <div class="card">
   <div class="card-header">
     <div class="card-title">
@@ -61,5 +76,48 @@
   {% else %}
     <p class="muted">No budget set for this month.</p>
   {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M8 15l2-2 3 2 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <h3>Savings Goals</h3>
+    </div>
+    <span class="card-pill">Planner</span>
+  </div>
+
+  <form method="post" action="{{ url_for('finance.save_goal') }}" class="filter-grid">
+    {{ goal_form.csrf_token if goal_form is defined and goal_form.csrf_token is defined }}
+    <label>Goal</label>
+    <input class="input" type="text" name="name" placeholder="Emergency Fund" required>
+    <label>Target</label>
+    <input class="input" type="number" name="target_amount" step="0.01" required>
+    <label>Current</label>
+    <input class="input" type="number" name="current_amount" step="0.01" value="0">
+    <label>Deadline</label>
+    <input class="input" type="date" name="deadline">
+    <button class="btn btn-secondary" type="submit">Save Goal</button>
+  </form>
+
+  {% for goal in goals or [] %}
+  <div style="margin-top:10px;">
+    <div class="row" style="justify-content:space-between;">
+      <strong>{{ goal.name }}</strong>
+      <span class="muted">₱ {{ goal.current_amount }} / ₱ {{ goal.target_amount }}</span>
+    </div>
+    <div class="progress" style="margin-top:6px;height:12px;">
+      <div class="bar" style="width: {{ goal.progress_percent() }}%;"></div>
+    </div>
+    <div class="muted" style="margin-top:4px;">{{ '%.1f'|format(goal.progress_percent()) }}% complete{% if goal.deadline %} • due {{ goal.deadline.date() }}{% endif %}</div>
+  </div>
+  {% else %}
+  <p class="muted" style="margin-top:12px;">No savings goals created yet.</p>
+  {% endfor %}
 </div>
 {% endblock %}

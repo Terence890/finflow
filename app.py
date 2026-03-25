@@ -91,6 +91,14 @@ def create_app(test_config: dict | None = None) -> Flask:
         # Same as above
         pass
 
+    # Ensure any newly added models have backing tables in existing local SQLite DBs.
+    # This is especially helpful for developer runs via `python app.py` without manual migrations.
+    with app.app_context():
+        from finflow.auth import model as _auth_model  # noqa: F401
+        from finflow.finance import models as _finance_models  # noqa: F401
+
+        db.create_all()
+
     # Simple index route -> redirect to dashboard or login
     @app.route("/")
     def index():

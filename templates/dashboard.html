@@ -2,210 +2,253 @@
 {% block title %}Dashboard - PinkLedger{% endblock %}
 
 {% block content %}
-<div class="cards">
-  <div class="card stat-card">
-    <div class="stat-row">
-      <div>
-        <div class="title">Balance</div>
-        <div class="value">₱ {{ balance or 0 }}</div>
-      </div>
-      <div class="stat-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 12h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M7 8h10M7 16h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-      </div>
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+  <div class="header-title">
+    <h1>Dashboard</h1>
+    <p class="header-subtitle">Monitor your finances at a glance</p>
+  </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Balance</div>
+    <div class="metric-value">₱ {{ balance or 0 }}</div>
+    <div class="metric-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 12h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M7 8h10M7 16h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
     </div>
   </div>
-  <div class="card stat-card">
-    <div class="stat-row">
-      <div>
-        <div class="title">Total Income</div>
-        <div class="value">₱ {{ total_income or 0 }}</div>
-      </div>
-      <div class="stat-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 4v12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M7 11l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
+  <div class="metric-card">
+    <div class="metric-label">Total Income</div>
+    <div class="metric-value">₱ {{ total_income or 0 }}</div>
+    <div class="metric-icon income" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 4v12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M7 11l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </div>
   </div>
-  <div class="card stat-card">
-    <div class="stat-row">
-      <div>
-        <div class="title">Total Expense</div>
-        <div class="value">₱ {{ total_expense or 0 }}</div>
-      </div>
-      <div class="stat-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 20V8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M17 13l-5-5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
+  <div class="metric-card">
+    <div class="metric-label">Total Expense</div>
+    <div class="metric-value">₱ {{ total_expense or 0 }}</div>
+    <div class="metric-icon expense" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 20V8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M17 13l-5-5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </div>
   </div>
 </div>
 
-<div class="charts">
-  <div class="chart-card">
-    <div class="chart-header">
-      <div class="chart-title">
-        <span class="chart-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 4v8l6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            <path d="M12 4a8 8 0 1 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-        </span>
-        <h3>Expense by Category</h3>
-      </div>
-      <span class="chart-pill">Live</span>
+<!-- Budget Alert (if applicable) -->
+{% if budget_alert is defined and budget_alert.has_budget %}
+<div class="alert-card">
+  <div class="alert-header">
+    <div>
+      <div class="alert-title">Smart Budget Alert</div>
+      <div class="alert-subtitle">{{ budget_alert.message }}</div>
     </div>
-    <canvas id="expensePie" height="220"></canvas>
-    <div class="chart-legend" data-category-legend></div>
+    <span class="alert-badge">{{ budget_alert.level|capitalize }}</span>
   </div>
-  <div class="chart-card">
-    <div class="chart-header">
-      <div class="chart-title">
-        <span class="chart-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-        </span>
-        <h3>Quick Add</h3>
-      </div>
-      <span class="chart-pill soft">Fast entry</span>
-    </div>
-    <div class="form">
-      <form method="post" action="{{ url_for('finance.add_income') }}">
-        {{ csrf_token() if csrf_token is defined }}
-        <label>Amount</label>
-        <input class="input" type="number" name="amount" step="0.01" required>
-        <label>Source</label>
-        <input class="input" type="text" name="source" required>
-        <label>Date</label>
-        <input class="input" type="date" name="date" value="{{ today }}" required>
-        <button class="btn btn-primary" type="submit">Add Income</button>
-      </form>
-    </div>
-    <div class="form">
-      <form method="post" action="{{ url_for('finance.add_expense') }}">
-        {{ csrf_token() if csrf_token is defined }}
-        <label>Amount</label>
-        <input class="input" type="number" name="amount" step="0.01" required>
-        <label>Category</label>
-        <div class="category-grid" role="radiogroup" aria-label="Expense category">
-          <label class="category-option">
-            <input type="radio" name="category" value="Food" required>
-            <span class="category-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M7 3v9M11 3v9M15 4v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                <path d="M6 12h10v5a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M18 9c2 0 2 3 0 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <span class="category-label">Food</span>
-          </label>
-          <label class="category-option">
-            <input type="radio" name="category" value="Travel">
-            <span class="category-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                <path d="M5 12l3-6h8l3 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M7 12l2 7M17 12l-2 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <span class="category-label">Travel</span>
-          </label>
-          <label class="category-option">
-            <input type="radio" name="category" value="Shopping">
-            <span class="category-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M6 8h12l-1.2 10.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M9 8a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <span class="category-label">Shopping</span>
-          </label>
-          <label class="category-option">
-            <input type="radio" name="category" value="Bills">
-            <span class="category-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M6 3h9l3 3v15H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M9 11h6M9 15h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <span class="category-label">Bills</span>
-          </label>
-          <label class="category-option">
-            <input type="radio" name="category" value="Others">
-            <span class="category-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                <path d="M7 7l10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <span class="category-label">Others</span>
-          </label>
+  <div class="progress-bar" style="margin-top: 12px;">
+    <div class="progress-fill" style="width: {{ budget_alert.percent }}%; background: linear-gradient(90deg, var(--color-button), var(--color-secondary));"></div>
+  </div>
+  <div class="alert-meta">{{ budget_alert.percent }}% • ₱ {{ budget_alert.spent }} / ₱ {{ budget_alert.budget }}</div>
+</div>
+{% endif %}
+
+<!-- Main Content Grid -->
+<div class="dashboard-grid">
+  <!-- Left Column: Charts & Analytics -->
+  <div class="dashboard-col">
+
+    <!-- Expense by Category -->
+    <div class="dashboard-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Expense by Category</h3>
+          <p class="card-subtitle">Monthly breakdown</p>
         </div>
-        <label>Date</label>
-        <input class="input" type="date" name="date" value="{{ today }}" required>
-        <button class="btn btn-secondary" type="submit">Add Expense</button>
-      </form>
+      </div>
+      <div style="position: relative; height: 240px;">
+        <canvas id="expensePie"></canvas>
+      </div>
+      <div class="chart-legend" data-category-legend style="margin-top: 16px;"></div>
+    </div>
+
+    <!-- Recent Income -->
+    <div class="dashboard-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Recent Income</h3>
+          <p class="card-subtitle">Last 5 entries</p>
+        </div>
+        <a href="{{ url_for('finance.income_page') }}" class="link-text">View All</a>
+      </div>
+      <div class="transaction-list">
+        {% for inc in incomes[:5] %}
+        <div class="transaction-item">
+          <div class="transaction-info">
+            <div class="transaction-label">{{ inc.source or 'Income' }}</div>
+            <div class="transaction-date">{{ inc.date.strftime('%b %d, %Y') if inc.date else '-' }}</div>
+          </div>
+          <div class="transaction-amount income">+₱ {{ inc.amount }}</div>
+        </div>
+        {% else %}
+        <div class="empty-state">No income yet</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Recent Expenses -->
+    <div class="dashboard-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Recent Expenses</h3>
+          <p class="card-subtitle">Last 5 entries</p>
+        </div>
+        <a href="{{ url_for('finance.expense_page') }}" class="link-text">View All</a>
+      </div>
+      <div class="transaction-list">
+        {% for exp in expenses[:5] %}
+        <div class="transaction-item">
+          <div class="transaction-info">
+            <div class="transaction-label">{{ exp.category or 'Other' }}</div>
+            <div class="transaction-date">{{ exp.date.strftime('%b %d, %Y') if exp.date else '-' }}</div>
+          </div>
+          <div class="transaction-amount expense">-₱ {{ exp.amount }}</div>
+        </div>
+        {% else %}
+        <div class="empty-state">No expenses yet</div>
+        {% endfor %}
+      </div>
     </div>
   </div>
-</div>
 
-<div class="card">
-  <h3>Recent Income</h3>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Source</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for inc in incomes %}
-      <tr>
-        <td>{{ inc.date }}</td>
-        <td>{{ inc.source or 'Income' }}</td>
-        <td>₱ {{ inc.amount }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="3" class="muted">No income yet</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  <!-- Right Column: Quick Actions & Management -->
+  <div class="dashboard-sidebar">
+    <!-- Quick Add Income -->
+    <div class="dashboard-card">
+      <h3 class="card-title">Quick Add Income</h3>
+      <form method="post" action="{{ url_for('finance.add_income') }}" class="form-compact">
+        {{ csrf_token() if csrf_token is defined }}
+        <div class="form-group">
+          <label>Amount</label>
+          <input class="input" type="number" name="amount" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label>Source</label>
+          <input class="input" type="text" name="source" placeholder="Salary, etc." required>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input class="input" type="date" name="date" value="{{ today }}" required>
+        </div>
+        <div class="form-group">
+          <label>Note</label>
+          <input class="input" type="text" name="note" placeholder="Optional">
+        </div>
+        <button class="btn btn-primary btn-full" type="submit">Add Income</button>
+      </form>
+    </div>
 
-<div class="card">
-  <h3>Recent Expenses</h3>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Category</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for exp in expenses %}
-      <tr>
-        <td>{{ exp.date }}</td>
-        <td>{{ exp.category or 'Other' }}</td>
-        <td>₱ {{ exp.amount }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="3" class="muted">No expenses yet</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <!-- Quick Add Expense -->
+    <div class="dashboard-card">
+      <h3 class="card-title">Quick Add Expense</h3>
+      <form method="post" action="{{ url_for('finance.add_expense') }}" class="form-compact">
+        {{ csrf_token() if csrf_token is defined }}
+        <div class="form-group">
+          <label>Amount</label>
+          <input class="input" type="number" name="amount" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select class="input" name="category" required>
+            <option value="">Select category</option>
+            <option value="Food">Food & Dining</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Bills">Bills & Utilities</option>
+            <option value="Others">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input class="input" type="date" name="date" value="{{ today }}" required>
+        </div>
+        <div class="form-group">
+          <label>Note</label>
+          <input class="input" type="text" name="description" placeholder="What was this for?">
+        </div>
+        <button class="btn btn-secondary btn-full" type="submit">Add Expense</button>
+      </form>
+    </div>
+
+    <!-- Savings Goals Summary -->
+    <div class="dashboard-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Savings Goals</h3>
+          <p class="card-subtitle">{{ (savings_goals or [])|length }} active</p>
+        </div>
+      </div>
+      <div class="goals-list">
+        {% for goal in savings_goals or [] %}
+        <div class="goal-item">
+          <div class="goal-header">
+            <span class="goal-name">{{ goal.name }}</span>
+            <span class="goal-progress">{{ '%.0f'|format(goal.progress_percent()) }}%</span>
+          </div>
+          <div class="progress-bar" style="margin: 8px 0;">
+            <div class="progress-fill" style="width: {{ goal.progress_percent() }}%;"></div>
+          </div>
+          <div class="goal-meta">₱ {{ goal.current_amount }} / ₱ {{ goal.target_amount }}</div>
+        </div>
+        {% else %}
+          <div class="empty-state">No savings goals yet. <a href="{{ url_for('finance.budget_page') }}" class="link-text">Create one</a></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Recurring Transactions Summary -->
+    <div class="dashboard-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Recurring</h3>
+          <p class="card-subtitle">{{ (recurring_items or [])|length }} active</p>
+        </div>
+      </div>
+      <div class="recurring-list">
+        {% for item in recurring_items or [] %}
+        <div class="recurring-item">
+          <div class="recurring-info">
+            <div class="recurring-label">
+              <span class="badge" style="background: {% if item.transaction_type == 'income' %}rgba(76, 175, 80, 0.2){% else %}rgba(244, 67, 54, 0.2){% endif %}; color: {% if item.transaction_type == 'income' %}#4CAF50{% else %}#f44336{% endif %};">
+                {{ item.transaction_type|capitalize }}
+              </span>
+              <span>{{ item.category_or_source }}</span>
+            </div>
+            <div class="recurring-date">Next: {{ item.next_run_at.strftime('%b %d') if item.next_run_at else '-' }}</div>
+          </div>
+          <form method="post" action="{{ url_for('finance.run_recurring', id=item.id) }}" style="display: inline;">
+            {{ csrf_token() if csrf_token is defined }}
+            <button class="btn-icon" type="submit" title="Run now" aria-label="Run recurring transaction">
+              <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                <path d="M5 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </form>
+        </div>
+        {% else %}
+        <div class="empty-state">No recurring transactions yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -224,22 +267,38 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof Chart !== 'undefined' && canvas) {
     const ctx = canvas.getContext('2d');
     new Chart(ctx, {
-      type: 'pie',
+      type: 'doughnut',
       data: {
         labels: expenseData.map(e => e.category),
         datasets: [{
           data: expenseData.map(e => e.amount),
-          backgroundColor: colors
+          backgroundColor: colors,
+          borderColor: '#fff',
+          borderWidth: 2
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 1,
-        animation: { duration: 800, easing: 'easeOutQuart' }
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        cutout: '65%'
       }
     });
   }
+
+  document.addEventListener('click', function (event) {
+    const btn = event.target.closest('.js-run-recurring');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    if (!id) return;
+    fetch(`/finance/recurring/${id}/run`, { method: 'POST' })
+      .then(res => {
+        if (!res.ok) throw new Error('Run failed');
+        return res.json();
+      })
+      .then(() => window.location.reload())
+      .catch(() => alert('Could not run recurring transaction'));
+  });
 });
 </script>
 {% endblock %}

@@ -113,3 +113,72 @@ class Budget(db.Model):
 
     def __repr__(self) -> str:
         return f"<Budget id={self.id} user_id={self.user_id} month={self.month} amount={self.amount}>"
+
+
+class RecurringTransaction(db.Model):
+    __tablename__ = "recurring_transactions"
+
+    id: int = Column(Integer, primary_key=True)
+    user_id: int = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    transaction_type: str = Column(String(10), nullable=False, comment="income or expense")
+    amount: Decimal = Column(Numeric(12, 2), nullable=False)
+    category_or_source: str = Column(String(120), nullable=False)
+    frequency: str = Column(String(16), nullable=False, comment="daily, weekly, monthly")
+    next_run_at: datetime = Column(DateTime, nullable=False)
+    note: Optional[str] = Column(String(255), nullable=True)
+    active: bool = Column(db.Boolean, default=True, nullable=False)
+    created_at: datetime = Column(DateTime, default=_utc_now, nullable=False)
+
+    user = relationship("User", backref="recurring_transactions")
+
+    __table_args__ = (
+        CheckConstraint("amount >= 0", name="recurring_amount_nonnegative"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "transaction_type": self.transaction_type,
+            "amount": float(self.amount) if self.amount is not None else 0.0,
+            "category_or_source": self.category_or_source,
+            "frequency": self.frequency,
+            "next_run_at": self.next_run_at.isoformat() if self.next_run_at else None,
+            "note": self.note,
+            "active": bool(self.active),
+        }
+
+
+class SavingsGoal(db.Model):
+    __tablename__ = "savings_goals"
+
+    id: int = Column(Integer, primary_key=True)
+    user_id: int = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name: str = Column(String(120), nullable=False)
+    target_amount: Decimal = Column(Numeric(12, 2), nullable=False)
+    current_amount: Decimal = Column(Numeric(12, 2), nullable=False, default=0)
+    deadline: Optional[datetime] = Column(DateTime, nullable=True)
+    created_at: datetime = Column(DateTime, default=_utc_now, nullable=False)
+
+    user = relationship("User", backref="savings_goals")
+
+    __table_args__ = (
+        CheckConstraint("target_amount > 0", name="goal_target_positive"),
+        CheckConstraint("current_amount >= 0", name="goal_current_nonnegative"),
+    )
+
+    def progress_percent(self) -> float:
+        if not self.target_amount:
+            return 0.0
+        return min(100.0, float(self.current_amount / self.target_amount) * 100.0)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "target_amount": float(self.target_amount) if self.target_amount is not None else 0.0,
+            "current_amount": float(self.current_amount) if self.current_amount is not None else 0.0,
+            "deadline": self.deadline.isoformat() if self.deadline else None,
+            "progress_percent": self.progress_percent(),
+        }
