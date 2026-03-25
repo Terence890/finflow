@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from finflow.app import db
@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 
 def _utc_now() -> datetime:
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)
 
 
 class User(db.Model, UserMixin):
@@ -25,9 +25,7 @@ class User(db.Model, UserMixin):
     name: str = db.Column(db.String(100), nullable=False)
     email: str = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash: str = db.Column(db.String(128), nullable=False)
-    created_at: datetime = db.Column(
-        db.DateTime, default=_utc_now, nullable=False
-    )
+    created_at: datetime = db.Column(db.DateTime, default=_utc_now, nullable=False)
 
     def set_password(self, password: str) -> None:
         """Hash and store the password."""
@@ -50,4 +48,3 @@ class User(db.Model, UserMixin):
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email}>"
-

@@ -77,7 +77,12 @@ def register():
 @auth_bp.route("/logout")
 @login_required
 def logout():
-    log_auth_event("logout", user_id=current_user.id, email=getattr(current_user, "email", None), status="success")
+    log_auth_event(
+        "logout",
+        user_id=current_user.id,
+        email=getattr(current_user, "email", None),
+        status="success",
+    )
     logout_user()
     flash("You have been logged out.", "info")
     return redirect(url_for("auth.login"))
