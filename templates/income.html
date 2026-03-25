@@ -40,6 +40,8 @@
     <input class="input" type="text" name="source" required>
     <label>Date</label>
     <input class="input" type="date" name="date" value="{{ today }}" required>
+    <label>Note</label>
+    <input class="input" type="text" name="note" placeholder="Optional note">
     <button class="btn btn-primary" type="submit">Add Income</button>
   </form>
 </div>
@@ -51,6 +53,8 @@
     </div>
   </div>
   <form method="get" action="{{ url_for('finance.income_page') }}" class="filter-grid">
+    <label>Search</label>
+    <input class="input" type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="Search source or note">
     <label>Source</label>
     <input class="input" type="text" name="source" value="{{ request.args.get('source', '') }}" placeholder="Salary, freelance...">
     <label>Start Date</label>
@@ -111,11 +115,11 @@
 <div class="card">
   <div class="pagination-row">
     {% if paginator.has_prev %}
-      <a class="btn btn-secondary" href="{{ url_for('finance.income_page', page=paginator.prev_page, per_page=paginator.per_page, source=request.args.get('source', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), min_amount=request.args.get('min_amount', ''), max_amount=request.args.get('max_amount', '')) }}">Previous</a>
+      <a class="btn btn-secondary" href="{{ url_for('finance.income_page', page=paginator.prev_page, per_page=paginator.per_page, q=request.args.get('q', ''), source=request.args.get('source', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), min_amount=request.args.get('min_amount', ''), max_amount=request.args.get('max_amount', '')) }}">Previous</a>
     {% endif %}
     <span class="muted">Page {{ paginator.page }} of {{ paginator.total_pages }} ({{ paginator.total }} items)</span>
     {% if paginator.has_next %}
-      <a class="btn btn-secondary" href="{{ url_for('finance.income_page', page=paginator.next_page, per_page=paginator.per_page, source=request.args.get('source', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), min_amount=request.args.get('min_amount', ''), max_amount=request.args.get('max_amount', '')) }}">Next</a>
+      <a class="btn btn-secondary" href="{{ url_for('finance.income_page', page=paginator.next_page, per_page=paginator.per_page, q=request.args.get('q', ''), source=request.args.get('source', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), min_amount=request.args.get('min_amount', ''), max_amount=request.args.get('max_amount', '')) }}">Next</a>
     {% endif %}
   </div>
 </div>

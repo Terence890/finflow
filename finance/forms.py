@@ -159,6 +159,10 @@ class TransactionFilterForm(FlaskForm):
         validators=[OptionalValidator(), NumberRange(min=0)],
         places=2,
     )
+    q = StringField(
+        "Search",
+        validators=[OptionalValidator(), Length(max=120)],
+    )
     
     def get_page(self) -> int:
         """Get page number with default."""
@@ -193,4 +197,50 @@ class ExpenseFilterForm(TransactionFilterForm):
         default="all",
         validators=[OptionalValidator()],
     )
+
+
+class RecurringTransactionForm(FlaskForm):
+    """Form to create recurring transactions."""
+
+    transaction_type = SelectField(
+        "Type",
+        choices=[("income", "Income"), ("expense", "Expense")],
+        validators=[DataRequired("Transaction type is required.")],
+    )
+    amount = DecimalField(
+        "Amount",
+        validators=[DataRequired(), NumberRange(min=0.01, message="Amount must be greater than 0.")],
+        places=2,
+    )
+    category_or_source = StringField(
+        "Category or Source",
+        validators=[DataRequired(), Length(min=2, max=120)],
+    )
+    frequency = SelectField(
+        "Frequency",
+        choices=[("daily", "Daily"), ("weekly", "Weekly"), ("monthly", "Monthly")],
+        validators=[DataRequired("Frequency is required.")],
+    )
+    next_run_at = DateField("Next Run Date", validators=[DataRequired()])
+    note = TextAreaField("Note", validators=[OptionalValidator(), Length(max=255)])
+    submit = SubmitField("Add Recurring")
+
+
+class SavingsGoalForm(FlaskForm):
+    """Form to create or update savings goals."""
+
+    name = StringField("Goal Name", validators=[DataRequired(), Length(min=2, max=120)])
+    target_amount = DecimalField(
+        "Target Amount",
+        validators=[DataRequired(), NumberRange(min=1, message="Target must be at least 1.")],
+        places=2,
+    )
+    current_amount = DecimalField(
+        "Current Amount",
+        validators=[OptionalValidator(), NumberRange(min=0)],
+        places=2,
+        default=0,
+    )
+    deadline = DateField("Deadline", validators=[OptionalValidator()])
+    submit = SubmitField("Save Goal")
 

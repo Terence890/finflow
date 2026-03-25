@@ -17,8 +17,34 @@
       </div>
       <p class="muted section-subtitle">Summary view of your income and expenses.</p>
     </div>
-    <button class="btn btn-secondary report-print" type="button">Export PDF</button>
+    <div class="row">
+      <a class="btn btn-secondary" href="{{ url_for('finance.export_reports', format='csv', month=request.args.get('month', '')) }}">Export CSV</a>
+      <a class="btn btn-secondary" href="{{ url_for('finance.export_reports', format='pdf', month=request.args.get('month', '')) }}">Export PDF</a>
+    </div>
   </div>
+</div>
+
+<div class="card">
+  <form method="get" action="{{ url_for('finance.reports_page') }}" class="filter-grid">
+    <label>Search</label>
+    <input class="input" type="text" name="q" value="{{ q or '' }}" placeholder="Search notes, source, category">
+    <label>Start Date</label>
+    <input class="input" type="date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+    <label>End Date</label>
+    <input class="input" type="date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+    <label>Category</label>
+    <select class="input" name="category">
+      <option value="all" {% if request.args.get('category', 'all') == 'all' %}selected{% endif %}>All Categories</option>
+      <option value="Food" {% if request.args.get('category') == 'Food' %}selected{% endif %}>Food</option>
+      <option value="Travel" {% if request.args.get('category') == 'Travel' %}selected{% endif %}>Travel</option>
+      <option value="Shopping" {% if request.args.get('category') == 'Shopping' %}selected{% endif %}>Shopping</option>
+      <option value="Bills" {% if request.args.get('category') == 'Bills' %}selected{% endif %}>Bills</option>
+      <option value="Others" {% if request.args.get('category') == 'Others' %}selected{% endif %}>Others</option>
+    </select>
+    <label>Export Month</label>
+    <input class="input" type="month" name="month" value="{{ request.args.get('month', '') }}">
+    <button class="btn btn-primary" type="submit">Apply</button>
+  </form>
 </div>
 
 <div class="cards">
